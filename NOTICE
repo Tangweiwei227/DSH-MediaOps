@@ -1,0 +1,29 @@
+DSH-MediaOps
+
+This distribution includes the Easel skill corpus published by ZJU-REAL:
+
+  Project: https://github.com/ZJU-REAL/Easel
+  Source snapshot: 660dfd2b75d10bea48f57be22d8da694f88851b8
+  License: Apache License 2.0
+
+Easel and its contributors retain all applicable copyright, patent,
+trademark, and attribution rights in their work. DSH-MediaOps does not imply
+endorsement by ZJU-REAL or by any upstream project.
+
+The bundled skill metadata records projects, products, publications, and
+methods that were adapted, referenced, or used as external dependencies by
+Easel. Most named projects are references or separately installed dependencies,
+not vendored source. The 43 reference-project entries inherited from Easel have
+not been individually license-verified. Their names are acknowledgments, not a
+claim that their code is redistributed or that their licenses apply to this
+package.
+
+Two identifiable vendored skill sources carry their own MIT license texts:
+
+  lucasygu/redbook — Copyright (c) 2026 Lucas Gu
+  white0dew/XiaohongshuSkills — Copyright (c) 2026 angiin
+
+See THIRD_PARTY_NOTICES.md, third_party_licenses/, and each bundled skill's
+EASEL-META.md for source and attribution details. The Apache License 2.0 text
+is distributed in the repository LICENSE file. Files changed from the pinned
+Easel snapshot carry a short DSH-MediaOps modification notice.

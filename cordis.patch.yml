@@ -1,0 +1,4 @@
+# DSH-MediaOps contributes a host plugin and a browser client through one row.
+- insert:
+    - id: mediaops
+      name: 'dsh-mediaops'

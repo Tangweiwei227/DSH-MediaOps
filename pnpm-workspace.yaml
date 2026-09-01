@@ -1,0 +1,7 @@
+packages:
+  - '.'
+
+# pnpm 11 blocks dependency lifecycle scripts by default. esbuild's verified
+# platform-binary check is the only dependency build needed by this project.
+allowBuilds:
+  esbuild: true
