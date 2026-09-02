@@ -85,23 +85,48 @@ preview/confirmed → cancelled
 
 要求：可运行的 DSH Desktop / `dsh` CLI、Node.js 22.19+ 或 24+，以及可从 `PATH` 找到的 pnpm。建议使用与仓库 `packageManager` 一致的 pnpm 11.7.x；可先运行 `pnpm --version` 检查。`dsh plugin` 安装流程需要 pnpm，即使当前发行包已包含构建后的 `lib/`。
 
-从 GitHub 安装到 Desktop profile：
+从 GitHub 安装到目标 profile：
 
 ```sh
 dsh plugin --profile desktop add github:Tangweiwei227/DSH-MediaOps
 ```
 
-安装后完全退出并重启 DSH Desktop。在对话视图中应能看到 `MediaOps`，输入 `@` 或 `/` 可验证入口。
+`--profile <name>` 指定插件装入哪个 DSH profile，插件只在该 profile 中生效：
+
+| profile | 生效界面 |
+|---|---|
+| `desktop` | DSH Desktop 桌面应用 |
+| `web` | DSH Web GUI |
+| 其他 | 替换为对应的 profile 名 |
+
+本机已有的 profile 可通过 `ls ~/.dsh/profiles/` 查看。
+
+安装后**完全退出并重启 DSH**（Desktop 应用或 Web 页面）。重启后，对话视图中应能看到 `MediaOps` 工作台，输入 `@` 或 `/` 可验证入口。
 
 当前包没有依赖安装时的 `prepare` 构建脚本。若后续版本或新增依赖引入需要执行的构建脚本，应在对应 DSH profile workspace 的 pnpm `allowBuilds` 中逐项允许可信包；不要全局放开未知依赖脚本。
 
-卸载：
+## 卸载
 
 ```sh
 dsh plugin --profile desktop remove dsh-mediaops
 ```
 
-卸载插件不会删除 data root 中的状态、凭证或登录态。
+`--profile` 需与安装时一致。卸载会从该 profile 的 `package.json` 依赖与 `dsh.profile.bundles` 中移除插件，并删除 `node_modules` 中的包；**重启 DSH 后**插件的代码、工具、审批钩子、本地 API 与 MediaOps 工作台全部移除，不留运行时残留。
+
+### 数据保留与彻底清除
+
+卸载**不会**删除 data root 中的状态、凭证或登录态（选题库、爆款库、草稿、发布记录、平台 Cookie、浏览器登录态、微信公众号配置等），这是刻意设计，防止误删用户数据。data root 默认位于 `~/.dsh/mediaops`，也可通过 `config.dataDir` 或 `DSH_MEDIAOPS_DATA_DIR` 指定。
+
+如需在卸载后彻底清除数据（建议先备份）：
+
+```sh
+# 备份后彻底删除
+rm -rf ~/.dsh/mediaops
+```
+
+> 若自定义过 data root，请删除对应的 `dataDir` / `DSH_MEDIAOPS_DATA_DIR` 路径。
+
+发布所需的外部依赖（playwright、biliup 等）由用户自行安装，不受插件卸载影响。
 
 ## 外部运行依赖
 
