@@ -8,9 +8,8 @@ layer: produce
 
 # AI 音乐 / BGM 生成（AI Music）
 
-给短视频、Vlog、社媒内容生成**原创背景音乐 / 配乐 / 纯音乐**。全程通过共享脚本
-`skills/shared/scripts/ai_music.py` 封装音乐生成 API（可插拔 provider），
-异步提交 → 轮询 → 下载。生成的音乐可再交给 `audio_ops.py` / `video_ops.py`
+给短视频、Vlog、社媒内容生成**原创背景音乐 / 配乐 / 纯音乐**。DSH 通过 Host 受控运行器调用音乐生成 API，
+异步提交 → 轮询 → 有界下载。生成的音乐可再交给 `audio_ops.py` / `video_ops.py`
 做裁剪、归一化或加到视频。
 
 **边界**：本 SKILL 只做背景音乐 / 配乐。要**人声口播 / 旁白 / 朗读**用 `tts-voiceover`。
@@ -20,7 +19,7 @@ layer: produce
 | 字段 | 必填 | 说明 |
 |------|------|------|
 | prompt | 是 | 风格 / 情绪 / 乐器描述（如“轻快 lo-fi，钢琴+鼓点，vlog 片头”） |
-| provider | 否 | `dashscope` 或 `suno-compatible`，也可用 env `MUSIC_PROVIDER` |
+| provider | 否 | 由 DSH-MediaOps 设置页选定 `dashscope` 或 `suno-compatible` |
 | lyrics | 否 | 歌词（提供后走带演唱模式，不再是纯音乐） |
 | duration | 否 | 时长（秒），部分 provider 支持 |
 | instrumental | 否 | 纯音乐（无人声 BGM） |
@@ -31,63 +30,23 @@ layer: produce
 - 音乐音频文件（mp3，放入 `outputs/主题名/`）
 - 打印实际提交的 provider / model、任务轮询过程、最终输出路径
 
-## 配置（需设的环境变量）
+## DSH 受管模式（最高优先级）
 
-> **配置检查路径铁律**：先 `cd "$DSH_MEDIAOPS_WORKSPACE"`，确认 workspace 根有 `.env`，再使用本 Skill 中由 DSH 展开的绝对 `skills/shared/scripts/` 路径运行注册表、`check` 或生成命令。脚本代码位于只读插件资源目录，不要求 workspace 自带 `skills/`；也不得仅凭 `env` / `printenv` 没显示变量就判断未配置。
-
-在当前 DSH workspace 根的 `.env` 或环境变量中设置（脚本自动向上查找 `.env`）。用户自己填 key。
-
-**通用**
-
-```bash
-MUSIC_PROVIDER=dashscope        # 或 suno-compatible；也可用 --provider 覆盖
-```
-
-**provider = dashscope**（阿里云 DashScope / 百炼）
-
-```bash
-DASHSCOPE_API_KEY=...           # 必填（别名 DASHSCOPE_KEY / ALIYUN_API_KEY）
-DASHSCOPE_MUSIC_MODEL=audio-generation  # 可选（兼容旧名 DASHSCOPE_MODEL）
-DASHSCOPE_BASE_URL=https://dashscope.aliyuncs.com/api/v1   # 可选
-```
-
-**provider = suno-compatible**（Suno 类第三方 API 网关）
-
-```bash
-MUSIC_API_KEY=...               # 必填
-MUSIC_BASE_URL=https://api.example.com/v1   # 必填，你的 API 根地址
-MUSIC_MODEL=music-1             # 可选，按服务商模型名调整
-```
+1. 在 DSH-MediaOps 设置页的“多模态模型”配置 provider/key/模型，先调用 `mediaops_model_status` 读脱敏状态。
+2. 不得读写 `.env`，不得直接执行 `ai_music.py`/`model_registry.py`，不得传 `--env-file` 或 `--model`，也不得把 key 放入对话或工具参数。
+3. 每一次远程生成都必须单独调用 `mediaops_run_model_script` 并通过 DSH 原生审批；时长、轮询和超时由 Host 设上限。
 
 ## 执行步骤
 
-先跑 `python skills/shared/scripts/model_registry.py configured --group music --env-file .env`。只有一个可用时直接显式传 `--provider`；多个可用且用户没点名时，先列出选项询问，不按 `MUSIC_PROVIDER` 擅自选择。
+### 1. 先用 `mediaops_model_status` 检查配置（不发请求）
 
-脚本路径（相对项目根）：`skills/shared/scripts/ai_music.py`。每个子命令支持 `-h`。
-
-### 1. 先自检配置 check（不发请求）
-
-```bash
-python skills/shared/scripts/ai_music.py check --provider dashscope
-```
-
-缺 key 会明确列出缺哪个 env（含别名提示）。配置齐了再往下。
+配置未就绪时，请用户去设置页补齐。
 
 ### 2. 生成音乐 generate
 
-```bash
-# 纯音乐 BGM（dashscope）
-python skills/shared/scripts/ai_music.py generate --provider dashscope \
-  --prompt "轻快的 lo-fi 嘻哈，钢琴 + 柔和鼓点，适合 vlog 片头" \
-  --duration 30 --instrumental \
-  -o outputs/主题名/vlog-bgm.mp3
+`mediaops_run_model_script({"script":"ai-music","argv":["generate","--prompt","轻快的 lo-fi 嘻哈，钢琴 + 柔和鼓点，适合 vlog 片头","--duration","30","--instrumental","--output","outputs/主题名/vlog-bgm.mp3"]})`
 
-# 带演唱（suno-compatible，给了歌词）
-python skills/shared/scripts/ai_music.py generate --provider suno-compatible \
-  --prompt "温暖的民谣，吉他弹唱" \
-  --lyrics "$(cat lyrics.txt)" \
-  -o outputs/主题名/song.mp3
-```
+带演唱时将已读取的歌词文本作为 `--lyrics` 后一个 argv 值；不要使用 shell 替换或拼接命令。
 
 `--poll-interval`（轮询间隔，默认 5s）、`--timeout`（超时，默认 300s）可按需调。
 
@@ -109,9 +68,9 @@ python skills/shared/scripts/video_ops.py bgm -i clip.mp4 -o clip_bgm.mp4 \
 
 ## 规则
 
-1. **先 check 再 generate** — 缺 key 时 check 给出清晰中文提示，不浪费一次失败请求。
+1. **先 status 再 generate** — 用 `mediaops_model_status` 检查，不浪费一次失败请求。
 2. **绝不覆盖原始素材** — 只写新文件到 `outputs/主题名/`。
 3. **不重造能力** — 裁剪 / 归一化 / 加视频 BGM 复用 `audio_ops.py` / `video_ops.py`。
-4. **provider 可插拔** — 换服务商只改 `--provider` + env，SKILL 流程不变。
+4. **provider 可插拔** — 换服务商只改 DSH-MediaOps 设置页，SKILL 流程不变。
 5. **与 tts-voiceover 分工** — 背景音乐/配乐找 ai-music，人声配音找 tts-voiceover。
    两者可组合：ai-music 出 BGM + tts-voiceover 出旁白 → `video_ops.py bgm` 混音。

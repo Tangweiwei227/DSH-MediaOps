@@ -12,6 +12,8 @@ import { mediaOpsTools } from './tools.ts'
 import { makeRoutes } from './routes.ts'
 import { PublisherAdapter } from './adapter.ts'
 import { buildPublishApprovalReason } from './approval.ts'
+import { ModelConfigStore } from './model-config.ts'
+import { buildModelRunApprovalReason, MODEL_SCRIPT_IDS, ModelScriptRunner, type ModelScriptId } from './model-runner.ts'
 
 export { ConfigSchema as Config }
 export type { MediaOpsConfig as ConfigOptions }
@@ -27,6 +29,7 @@ export const MEDIAOPS_GUIDANCE = `本机已安装 DSH-MediaOps（AI 原生媒体
 - 用 mediaops_discover_trends 拉热点；用户说“收进爆款库”时保存；需要转化为自有内容时用 mediaops_promote_viral 或 mediaops_save_topic。
 - 选题、爆款、草稿和发布回执都写入本机 MediaOps 数据库。对话中生成可复用稿件后，应询问是否保存，而不是假装已经入库。
 - 已提供 112 个 Easel bundled skills，覆盖发现、策划、生产、发布、归因和通用能力。用户/项目同名 skill 优先，插件不会覆盖定制版本。
+- 远程图像/视频/音乐/云语音只能先用 mediaops_model_status 查脱敏状态，再通过 mediaops_run_model_script 逐个生成并逐次审批。不得读写 workspace .env、直接执行模型脚本、传 --env-file/--model 或绕过 Host 审批。复合 skill 如会内部批量调远程模型，在未改造成逐次受管调用前不可执行该远程路径。
 
 发布是外部副作用，必须严格走四道闸门：
 1. 调用 mediaops_prepare_publish。Host adapter 会先以 argv 运行不带 --exec 的 dry-run；通过后复制本地素材、冻结正文并生成 payload digest。远程 URL 或相对素材路径必须先落成本地绝对文件；
@@ -44,10 +47,13 @@ export async function apply(ctx: Context, config?: MediaOpsConfig): Promise<void
   const service = new MediaOpsService(store)
   const trends = new TrendService(resolved.trendCacheTtlMs, resolved.trendTimeoutMs)
   const adapter = new PublisherAdapter(resolved.dataDir)
-  await store.ready
+  const modelConfig = new ModelConfigStore(resolved.dataDir)
+  const modelRunner = new ModelScriptRunner(modelConfig, resolved.dataDir)
+  await Promise.all([store.ready, modelConfig.ready])
   await Promise.all([
     service.cleanupExpiredAndOrphanedStaging(),
     adapter.cleanupSensitiveTemporaryFiles(),
+    modelRunner.cleanupTemporaryFiles(undefined, true),
   ])
 
   ctx.effect(
@@ -56,6 +62,7 @@ export async function apply(ctx: Context, config?: MediaOpsConfig): Promise<void
         void Promise.all([
           service.cleanupExpiredAndOrphanedStaging(),
           adapter.cleanupSensitiveTemporaryFiles(),
+          modelRunner.cleanupTemporaryFiles(),
         ]).catch(error => {
           console.error('[dsh-mediaops] publication temporary-file cleanup failed', error)
         })
@@ -73,6 +80,25 @@ export async function apply(ctx: Context, config?: MediaOpsConfig): Promise<void
 
   ctx.effect(
     () => ctx.on('tools/pre-execute', async (exec, next) => {
+      if (exec.name === 'mediaops_run_model_script') {
+        const downstream = await next()
+        if (downstream.kind === 'deny') return downstream
+        const args = exec.arguments as { script?: unknown; argv?: unknown }
+        if (typeof args.script !== 'string' || !MODEL_SCRIPT_IDS.includes(args.script as ModelScriptId)
+          || !Array.isArray(args.argv) || !args.argv.every(item => typeof item === 'string')) {
+          throw new Error('多模态模型运行参数无效')
+        }
+        const workspaceRoot = exec.agent?.session.header.cwd
+        if (!workspaceRoot) throw new Error('多模态模型审批需要绑定 DSH 会话 workspace')
+        // @deepseek-ai/dsh-tools carries this exact WeakMap-keyable exec object
+        // from pre-execute into the tool body (and its invariant companion checks
+        // the monotonic pipeline). The runner consumes that identity once.
+        const summary = await modelRunner.prepareApproved(exec, args.script as ModelScriptId, args.argv, workspaceRoot)
+        return {
+          kind: 'ask' as const,
+          reason: buildModelRunApprovalReason(summary),
+        }
+      }
       if (!['mediaops_confirm_publish', 'mediaops_execute_publish', 'mediaops_record_publish_result'].includes(exec.name)) return next()
       const args = exec.arguments as { publicationId?: unknown; payloadDigest?: unknown; confirm?: unknown; status?: unknown; externalUrl?: unknown; resultEvidence?: unknown }
       const summary = await service.publishApprovalSummary(String(args.publicationId ?? ''), String(args.payloadDigest ?? ''))
@@ -101,7 +127,7 @@ export async function apply(ctx: Context, config?: MediaOpsConfig): Promise<void
 
   ctx.effect(
     () => {
-      const disposers = mediaOpsTools(service, trends, adapter).map(tool => ctx.tools.register(tool))
+      const disposers = mediaOpsTools(service, trends, adapter, modelConfig, modelRunner).map(tool => ctx.tools.register(tool))
       return () => {
         for (const dispose of disposers) dispose()
       }
@@ -111,7 +137,7 @@ export async function apply(ctx: Context, config?: MediaOpsConfig): Promise<void
 
   ctx.effect(
     () => {
-      const disposers = makeRoutes(service, trends, resolved.maxReferenceChars).map(route => ctx.webServer.register(route))
+      const disposers = makeRoutes(service, trends, resolved.maxReferenceChars, modelConfig).map(route => ctx.webServer.register(route))
       return () => {
         for (const dispose of disposers) dispose()
       }
@@ -128,3 +154,5 @@ export async function apply(ctx: Context, config?: MediaOpsConfig): Promise<void
 export { MediaOpsStore } from './store.ts'
 export { MediaOpsService, PUBLISH_SKILLS } from './service.ts'
 export { TrendService, normalizeTrendPayload } from './trends.ts'
+export { ModelConfigStore, MODEL_GROUPS, MODEL_GROUP_IDS } from './model-config.ts'
+export { ModelScriptRunner, MODEL_SCRIPT_IDS } from './model-runner.ts'

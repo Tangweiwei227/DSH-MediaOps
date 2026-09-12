@@ -54,6 +54,19 @@ from pathlib import Path
 from typing import Any
 
 from model_registry import env_aliases, provider_ids, provider_required_env
+from safe_http import (
+    MAX_AUDIO_BYTES,
+    MAX_JSON_BYTES,
+    SecureOutputError,
+    activate_secure_output,
+    close_secure_output,
+    download_atomic,
+    read_error_text,
+    read_text_limited,
+    sanitize_log_text,
+    safe_urlopen,
+    url_for_log,
+)
 
 UA = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -71,7 +84,7 @@ ENV_ALIASES = env_aliases("music")
 
 
 def fail(message: str, exit_code: int = 1) -> "None":
-    print(f"错误：{message}", file=sys.stderr)
+    print(f"错误：{sanitize_log_text(message)}", file=sys.stderr)
     raise SystemExit(exit_code)
 
 
@@ -85,6 +98,8 @@ def strip_env_value(value: str) -> str:
 
 
 def find_default_env_file() -> Path | None:
+    if os.environ.get("DSH_MEDIAOPS_MANAGED_MODEL_CONFIG") == "1":
+        return None
     for directory in (Path.cwd(), *Path.cwd().parents):
         env_file = directory / ".env"
         if env_file.is_file():
@@ -155,11 +170,10 @@ def http_post(url: str, headers: dict[str, str], payload: dict[str, Any],
     base_headers.update(headers)
     request = urllib.request.Request(url, data=body, headers=base_headers, method="POST")
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            raw = response.read().decode("utf-8")
+        with safe_urlopen(request, timeout=timeout, max_redirects=0) as response:
+            raw = read_text_limited(response, MAX_JSON_BYTES)
     except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
-        fail(f"接口返回 HTTP {exc.code}：{detail}")
+        fail(f"接口返回 HTTP {exc.code}：{read_error_text(exc)}")
     except urllib.error.URLError as exc:
         fail(f"无法连接接口：{exc.reason}")
     except (http.client.RemoteDisconnected, TimeoutError):
@@ -178,11 +192,10 @@ def http_get(url: str, headers: dict[str, str], timeout: int = 30) -> dict[str, 
     base_headers.update(headers)
     request = urllib.request.Request(url, headers=base_headers, method="GET")
     try:
-        with urllib.request.urlopen(request, timeout=timeout) as response:
-            raw = response.read().decode("utf-8")
+        with safe_urlopen(request, timeout=timeout, max_redirects=0) as response:
+            raw = read_text_limited(response, MAX_JSON_BYTES)
     except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
-        fail(f"查询接口返回 HTTP {exc.code}：{detail}")
+        fail(f"查询接口返回 HTTP {exc.code}：{read_error_text(exc)}")
     except (urllib.error.URLError, http.client.RemoteDisconnected, TimeoutError):
         fail("查询接口连接失败或超时。")
     try:
@@ -195,16 +208,16 @@ def http_get(url: str, headers: dict[str, str], timeout: int = 30) -> dict[str, 
 
 
 def download_audio(url: str, output: Path, timeout: int = 180) -> Path:
-    output.parent.mkdir(parents=True, exist_ok=True)
     # 若 output 未带扩展名，从 URL 推断（默认 mp3）
     if not output.suffix:
         suffix = Path(urllib.parse.urlparse(url).path).suffix or ".mp3"
         output = output.with_suffix(suffix)
-    print(f"  下载音频：{url}", file=sys.stderr)
-    req = urllib.request.Request(url, headers={"User-Agent": UA})
+    print(f"  下载音频：{url_for_log(url)}", file=sys.stderr)
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            output.write_bytes(resp.read())
+        download_atomic(
+            url, output, max_bytes=MAX_AUDIO_BYTES, timeout=timeout,
+            label="音频",
+        )
     except urllib.error.URLError as exc:
         fail(f"无法下载音频：{exc.reason}")
     except TimeoutError:
@@ -271,7 +284,7 @@ def generate_dashscope(args: argparse.Namespace) -> Path:
         "Authorization": f"Bearer {api_key}",
         "X-DashScope-Async": "enable",
     }
-    print(f"[dashscope] 提交任务到 {endpoint}（model={model}）...", file=sys.stderr)
+    print(f"[dashscope] 提交任务到 {url_for_log(endpoint)}（model={model}）...", file=sys.stderr)
     result = http_post(endpoint, headers, payload, timeout=60)
 
     output = result.get("output", {})
@@ -338,7 +351,7 @@ def generate_suno(args: argparse.Namespace) -> Path:
         payload["duration"] = args.duration
     headers = {"Authorization": f"Bearer {api_key}"}
 
-    print(f"[suno] 提交任务到 {endpoint}（model={model}）...", file=sys.stderr)
+    print(f"[suno] 提交任务到 {url_for_log(endpoint)}（model={model}）...", file=sys.stderr)
     result = http_post(endpoint, headers, payload, timeout=60)
     task_id = _extract_suno_id(result)
     if not task_id:
@@ -496,9 +509,17 @@ def main(argv: list[str] | None = None) -> int:
     if not getattr(args, "cmd", None):
         parser.print_help()
         return 0
-    env_file = Path(args.env_file) if getattr(args, "env_file", None) else find_default_env_file()
-    load_env_file(env_file)
-    return args.func(args)
+    try:
+        if hasattr(args, "output"):
+            args.output = str(activate_secure_output(args.output))
+        env_file = Path(args.env_file) if getattr(args, "env_file", None) else find_default_env_file()
+        load_env_file(env_file)
+        return args.func(args)
+    except SecureOutputError as exc:
+        fail(str(exc))
+        return 1
+    finally:
+        close_secure_output()
 
 
 if __name__ == "__main__":

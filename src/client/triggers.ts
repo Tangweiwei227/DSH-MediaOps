@@ -2,8 +2,8 @@ import type {
   InputTriggerCandidate,
   InputTriggerSource,
 } from '@deepseek-ai/dsh-client-ui-input-trigger/client'
-import { fetchReference, fetchTopics, fetchViral } from './api.ts'
-import type { LibraryReference } from './contracts.ts'
+import { fetchReference, fetchReferences } from './api.ts'
+import type { LibraryReference, ReferenceItem } from './contracts.ts'
 import { parseLibraryReference } from './contracts.ts'
 
 export const MENTION_SOURCE = 'mediaops-library'
@@ -29,35 +29,28 @@ function clipboardReference(reference: LibraryReference): string {
   return `@[${label}](dsh-mediaops:${reference.kind}:${encodeURIComponent(reference.id)})`
 }
 
-function topicCandidates(items: Awaited<ReturnType<typeof fetchTopics>>): InputTriggerCandidate[] {
-  return items.slice(0, 12).map((item) => {
-    const description = compact(item.angle ?? item.summary ?? item.content)
-    const hint = item.status ?? item.tags?.slice(0, 3).join(' · ')
+const REFERENCE_SECTIONS: Record<ReferenceItem['kind'], string> = {
+  topic: '选题库',
+  viral: '爆款库',
+  draft: '草稿库',
+  publication: '发布记录',
+}
+
+function referenceCandidates(items: ReferenceItem[]): InputTriggerCandidate[] {
+  return items.slice(0, 16).map((item) => {
+    const description = compact(item.description)
+    const hint = compact(item.hint, 120)
     return {
-      name: item.title,
+      name: item.label,
       ...(description === undefined ? {} : { description }),
-      ...(hint === undefined || hint === '' ? {} : { hint }),
-      section: '选题库',
-      value: encodeReference({ kind: 'topic', id: item.id, label: item.title }),
+      ...(hint === undefined ? {} : { hint }),
+      section: REFERENCE_SECTIONS[item.kind],
+      value: encodeReference({ kind: item.kind, id: item.id, label: item.label }),
     }
   })
 }
 
-function viralCandidates(items: Awaited<ReturnType<typeof fetchViral>>): InputTriggerCandidate[] {
-  return items.slice(0, 12).map((item) => {
-    const description = compact(item.summary ?? item.notes)
-    const hint = [item.platform, item.hot === undefined ? undefined : `热度 ${item.hot}`].filter(Boolean).join(' · ')
-    return {
-      name: item.title,
-      ...(description === undefined ? {} : { description }),
-      ...(hint === '' ? {} : { hint }),
-      section: '爆款库',
-      value: encodeReference({ kind: 'viral', id: item.id, label: item.title }),
-    }
-  })
-}
-
-/** `@` source: search both libraries and serialize the selected record at submit time. */
+/** `@` source: search all four libraries once and serialize the selected record at submit time. */
 export function createMentionSource(): InputTriggerSource {
   return {
     trigger: '@',
@@ -65,15 +58,13 @@ export function createMentionSource(): InputTriggerSource {
     order: 30,
     showGroupTitle: false,
     async candidates(_session, { query, signal }) {
-      const [topics, viral] = await Promise.allSettled([
-        fetchTopics(query, signal),
-        fetchViral(query, signal),
-      ])
-      if (signal.aborted) return []
-      return [
-        ...topicCandidates(topics.status === 'fulfilled' ? topics.value : []),
-        ...viralCandidates(viral.status === 'fulfilled' ? viral.value : []),
-      ]
+      try {
+        const items = await fetchReferences(query, signal)
+        return signal.aborted ? [] : referenceCandidates(items)
+      } catch {
+        // Trigger suggestions are optional UI affordances; keep typing usable.
+        return []
+      }
     },
     onPick({ candidate }) {
       const reference = parseLibraryReference(candidate.value)

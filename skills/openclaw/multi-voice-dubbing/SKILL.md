@@ -10,12 +10,19 @@ layer: produce
 # 多角色 / 对话配音（Multi-voice Dubbing）
 
 把「多人对话 / 多角色脚本」合成为**多声线音轨**——每个角色一个符合其人设的声音，
-不再是「全程一个声音」。核心引擎 `skills/shared/scripts/multivoice.py`：
-逐行调 `tts.py`（edge-tts 免费多音色）或 `voice_clone.py`（云端表现力 provider / 克隆音色）合成，
+不再是「全程一个声音」。本地编排可复用 `skills/shared/scripts/multivoice.py`，
+但云端生成必须由 DSH Host 逐行受控调用，
 把每行 emotion 喂进 provider 的**真情感通道**，`ffmpeg` 拼成一轨 + 生成对齐的说话人字幕。
 
 > 创意（谁说什么、什么情绪）由你 LLM 产出；音色映射在 cast。确定性 IO（逐行合成/拼接/字幕）走引擎。
 > 产物 `voice.mp3` 可直接当 narration 喂 `auto-short-video/assemble.py` 或加进任意视频；`voice.srt` 是带角色名的字幕。
+
+## DSH 受管模式（最高优先级）
+
+1. 先调用 `mediaops_model_status` 确认语音 provider 在 DSH-MediaOps 设置页就绪；不读写 `.env`，不索要/回显 key。
+2. `lines.json` 中每一行云端配音都必须各自调用一次 `mediaops_run_model_script({"script":"voice-clone","argv":["clone",...]})` 并各自审批。
+3. DSH managed 模式不得直接运行 `multivoice.py dub`、`tts.py` 或 `voice_clone.py`：这些组合路径会在内部批量调远程服务，无法保证逐次审批。受控生成后才可用本地确定性工具拼接音轨和 SRT。
+4. edge-tts 远程合成尚未接入 managed runner，在 DSH 内不可作为自动降级路径。
 
 ## 配音质量分层（重要：治「像 AI 平读」）
 
@@ -28,19 +35,12 @@ layer: produce
 | `clone`+`gemini` | 好、**真免费** | GEMINI_API_KEY（Google 免费层，国内需代理）| 自然语言前缀 |
 | `clone`+`minimax` / `dashscope` | 好、有情绪 | 各家 key | emotion 枚举 / instruct |
 
-**推荐 SiliconFlow**（云端 CosyVoice2、无需 GPU、中文最稳）配置落 `.env`：
-```bash
-VOICE_PROVIDER=openai-compatible
-VOICE_BASE_URL=https://api.siliconflow.cn/v1
-VOICE_API_KEY=<你的key>
-VOICE_MODEL=FunAudioLLM/CosyVoice2-0.5B
-VOICE_INSTRUCT_MODE=inline
-```
+**推荐 SiliconFlow**（云端 CosyVoice2、无需 GPU、中文最稳）可在 DSH-MediaOps 设置页选择 `openai-compatible`，并填入 endpoint、model 与 key。
 cast 里角色：`--engine clone --provider openai-compatible --voice-id FunAudioLLM/CosyVoice2-0.5B:alex`（8 音色 alex/anna/benjamin/…）。
 
 - **逐行 emotion 自动驱动演绎**：`lines.json` 每行的 `emotion`（愤怒/崩溃大哭/冷笑/温柔…）→ 引擎按 provider 转成对应情感参数。写具体越贴戏越好。
 - 想要「像人」→ 至少给主角/关键角色配一个云 provider（`engine=clone`）；配了 key 才有情绪，没 key 自动回退 edge（平）并告警。
-- provider 配置见 `voice_clone.py` 头部（各家 env）；`voice_clone.py check --provider <名>` 离线校验 key 是否齐。
+- provider 配置与脱敏校验统一使用 DSH-MediaOps 设置页 + `mediaops_model_status`。
 
 ## 谁会用到
 
@@ -75,7 +75,7 @@ python skills/shared/scripts/multivoice.py cast check --cast <路径>/cast.json 
 > python skills/shared/scripts/multivoice.py cast add --cast <路径>/cast.json \
 >     --name 霸总 --role male_lead --engine clone --provider minimax --voice-id <你的音色id> --note "克隆/表现力音色"
 > ```
-> 需在 `.env` 配对应 provider 的 key（`voice_clone.py check --provider minimax`）；缺 key 该角色**自动回退 edge**（平）并告警。
+> provider 必须先在 DSH-MediaOps 设置页就绪；缺 key 时停止并引导配置，不自动回退到未受管的远程引擎。
 
 ### 2. 逐行对白（lines.json）
 
@@ -89,14 +89,9 @@ python skills/shared/scripts/multivoice.py cast check --cast <路径>/cast.json 
 ```
 speaker 必须与 cast 里的名字一致（不一致会回退旁白音色并告警）；emotion 可选。
 
-### 3. 合成多声线音轨 + 字幕
+### 3. 逐行受控合成 + 本地拼接
 
-```bash
-python skills/shared/scripts/multivoice.py dub \
-    --cast <路径>/cast.json --lines <路径>/lines.json -o <路径>/voice.mp3
-```
-产出 `voice.mp3`（每角色独立声线、情绪自动调韵律）+ `voice.srt`（带角色名，时序按逐行实测时长对齐）。
-`dub` 会打印**用了几种声线**——确认 ≥2 种（多人对话不该只有一个声音）。
+对每行生成独立输出，例如：`mediaops_run_model_script({"script":"voice-clone","argv":["clone","--text","这篇论文解决了一个关键问题。","--voice-id","<cast 中的音色>","--speed","1","--output","outputs/主题名/line-001.mp3"]})`。所有行完成后，使用不联网的音频拼接/字幕流程产出 `voice.mp3` + `voice.srt`，并确认多人对话至少 2 种声线。
 
 ### 4. 用到视频里
 
@@ -106,7 +101,7 @@ python skills/shared/scripts/multivoice.py dub \
 ## 降级
 
 - 缺外网/edge-tts 不通 → 无法合成，如实告知（多声线依赖 edge-tts）。
-- cast 指定克隆音色但缺 key/失败 → 该角色**自动回退 edge 免费音色**并告警，不阻断。
+- cast 指定克隆音色但配置缺失/失败 → 停止该行，如实告知并请用户修复设置；不绕过审批降级。
 - 说话人不在 cast → 回退旁白音色并告警（建议补进 cast）。
 
 ## Profile 感知

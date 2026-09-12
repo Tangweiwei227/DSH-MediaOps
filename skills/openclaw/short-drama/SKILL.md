@@ -10,15 +10,20 @@ layer: produce
 <!-- Modified by DSH-MediaOps, 2026: adapted for DSH integration and safer operation. -->
 
 # AI 短剧制作（横屏/竖屏微短剧，多集）
-> **配置检查路径铁律**：整条流水线开始前先 `cd "$DSH_MEDIAOPS_WORKSPACE"` 并确认 workspace 根的 `.env`。生图、视频、配音配置从该 CWD 使用 DSH 展开的绝对共享脚本路径运行注册表/`check`；脚本本身位于只读插件资源目录，不要求 workspace 自带 `skills/`。不得用 `env` / `printenv` 判定缺少 `IMG_BASE_URL`、`VOICE_BASE_URL` 或 Key；发现缺项先核对 `pwd`，回 workspace 并显式传 `--env-file .env` 重查。
+
+## DSH managed 模式限制（最高优先级）
+
+- 生图、生视频、音乐和云端配音的配置只能来自 DSH-MediaOps 设置页；用 `mediaops_model_status` 检查脱敏状态。不读写 `.env`，不运行 `model_registry.py`/各模型 Python 脚本，不传 `--env-file` 或 `--model`。
+- 每张图、每个视频镜头、每段音乐、每行云端配音都必须分别调用 `mediaops_run_model_script`，且每次都要有独立原生审批。
+- **v0.2 限制：当前 `drama_ops.py generate`、`dubbing.py align/dub` 会在内部批量直接调用远程模型，尚无法映射为逐次安全 argv+审批。因此 DSH managed 模式暂不可执行这条“全自动远程批生成”路径。** 可做剧集策划、剧本、分镜和其他不联网步骤；到远程生成前必须停止并如实说明限制，不得回退到直跑脚本。
 ## ⛔ 三条铁律（最容易翻车，动手前先记死）
 
 1. **每镜必须「图生视频」成动态片段——绝不能拿静态图冒充。** 关键帧图(frame)只是 I2V 的**首帧**，必须再用 **ai-video-gen `image2video`** 驱动成会动的 `clip`。跳过这步 = 一堆静态图配音，垃圾。合成前 `storyboard` 会**硬拦**只有 frame 没 clip 的镜头。
-2. **配音必须闭源云 provider（有情感、像真人）——绝不用 edge(AI 味平读)。** 先 `.env` 配 `VOICE_PROVIDER` + `voice_clone.py check` 验 key；配了 key 后 `dubbing align/dub` **合成前就硬拦** edge，任何角色（含旁白）想落到 edge 直接失败。只有完全没 key 才 `--allow-edge` 兜底。
+2. **配音使用已在设置页就绪的云 provider，每行独立受控调用/审批。** edge 远程路径未接入 managed runner，不能作为自动兜底。
 3. **原生音频优先、环境音每镜必留、台词务必喂给模型。** 视频模型原生音频（环境音/脚步/物理音效）质量好，**环境音默认整轨全用**。**头号要点：生视频必须把台词写进 `generation_prompt`（`prepare` 生成）喂给模型**，否则模型不知说啥、台词全错。默认 **native-first**（让模型逐字说、能说就用、不默认丢 TTS）→ `audit` 逐镜 ASR 核验：对上用原生对白（常态）、说错转 `dub` 换 TTS、旁白/动作镜走 TTS/环境音。决策与探针细节见步骤 16/18 及 `references/native-audio-workflow.md`。
 4. **画面/声音/字幕按时间线对齐，自然播放。** 画面用真实片段全长（台词只占其中一段，按实际说话时间放置），**绝不慢放/循环/冻结**；片段盖不住台词就重生成/拆镜（`align` 硬拦）。
 
-> **⚠️ 不许抄近路（执行纪律，最常翻车）**：`prepare → drama_ops.py generate(生视频) → audit → align` 是**不可跳的链**，脚本已加**链式硬门**：① 生视频**必须走 `drama_ops.py generate`**（它逐镜读 `generation_prompt` 自己调视频模型，agent 无从传成只有画面的 prompt）——别再逐镜手调 ai-video-gen；② `generate`/`audit` 见有台词的镜缺 `generation_prompt` → 判定「没跑 prepare」直接失败；③ `align` 见缺 `clip-audit.json` → 判定「没跑 audit」直接失败（不再静默把全部对白降级成 TTS）。「手调生视频只传画面 prompt + 直接 TTS」这条错误捷径会被拦回来——才有「台词喂给模型 + 用视频原声」。
+> **⚠️ DSH managed 内不得执行上述批量链。** 其链式硬门尚与 Host 逐次审批冲突；不可为了完成短剧而绕过受管 runner。
 
 > 编排层 SKILL：创意（圣经/剧本/分镜/lines）你 LLM 写，生成动作全委派已有 SKILL（ai-image-gen/ai-video-gen/ai-music），确定性 IO 走 `scripts/drama_ops.py` + `scripts/dubbing.py`；角色一致性靠「先定参考图再 I2V」+ 剧集圣经锁成同一部剧。
 
@@ -99,7 +104,7 @@ progress.json           逐集/逐镜生成进度（控费、断点续跑）
 ### 2.5 选角（角色→音色，多声线关键，**闭源优先 + 音色贴角色**）
 
 10. 读 `skills/shared/references/voice-casting.md`。**音色由角色的真实定妆参考图形象决定**——先看 §2 生成出来的定妆图长什么样，按 voice-casting.md〇.6「形象原型 → 音色速查」对号入座：图里是**萝莉就配萝莉音（女童声/高而快）**、御姐配成熟音、大叔配低沉老成音、霸总配浑厚音…**绝不能形象与音色错位**（女主配大妈音、小孩配成年音 = 出戏）。**每个角色用 `--archetype` 写形象原型、`--ref` 绑定其定妆图 C 编号**（`cast check` 会核对：ref_index 里每个有定妆图的角色都必须被配音，漏配直接拦）。旁白单列且与所有角色不同。
-   - **闭源强制优先（铁律②，含旁白/普通配音）**：先 `.env` 配 `VOICE_PROVIDER` + `python skills/shared/scripts/voice_clone.py check --provider <..> --env-file .env` **验 key 能用**；`cast init` 旁白与 `cast add` 都默认 `clone` 并自动取 `VOICE_PROVIDER`。**配了 key 后：`cast check` 拦静态配置里的 edge，`align/dub` 合成前再拦一道**——任何角色（含旁白）想落到 edge 直接失败（clone 缺 voice_id / clone 调用失败都算），逼你修好闭源再出片。只有完全没 key 才 `--allow-edge` 兜底。预置音色见 voice-casting.md〇.5。
+   - **闭源强制优先（铁律②，含旁白/普通配音）**：用 `mediaops_model_status` 确认语音 provider 已就绪；逐行通过 `mediaops_run_model_script` 生成。当前批量 `align/dub` 远程路径在 managed 模式不可用。
    ```bash
    python skills/openclaw/short-drama/scripts/dubbing.py cast init --series "<剧名>"   # 建模板（旁白默认闭源）
    # 按角色定妆图形象挑贴合的闭源预置音色，并标注 archetype/ref
@@ -111,8 +116,7 @@ progress.json           逐集/逐镜生成进度（控费、断点续跑）
      --pitch=+6Hz --rate=+5% --archetype "萝莉/小女孩" --ref C03 --note "童声,贴 C03 幼态定妆图"
    python skills/openclaw/short-drama/scripts/dubbing.py cast check --series "剧名"
    ```
-   需要**专属克隆嗓音**（非预置）→ `--provider minimax/dashscope` + 先 `voice_clone.py enroll` 拿 `--voice-id`。
-   完全没配任何闭源 key 时才回退 edge（`cast check` 出 💡 提醒升级）。分层与配置见 voice-casting.md〇 与 `multi-voice-dubbing` SKILL。
+   需要**专属克隆嗓音**（非预置）→ 先单独调用 `mediaops_run_model_script` 的 `voice-clone/enroll`，明确确认声音授权，再用返回的 `voice-id`。配置缺失时停止，不回退到未受管远程引擎。
 
 ### 3. 分镜脚本 + 逐行对白 + **时长规划**（自然的关键：先定好每镜停留多久，再去生视频）
 
@@ -132,18 +136,14 @@ progress.json           逐集/逐镜生成进度（控费、断点续跑）
 
 ### 5. 逐镜生视频（I2V，**铁律①：每镜必做，绝不跳过**）
 
-16. **生成音频契约和 prompt（把台词喂给模型）**：先跑 `model_registry.py configured --group video --env-file .env`；多个可用且用户没点名时先询问，本集选定后全链路锁定。
+16. **生成音频契约和 prompt（把台词喂给模型）**：先用 `mediaops_model_status` 确认视频 provider。下方 `prepare` 只能做本地计划；若它需读取 workspace 凭据或触发远程调用，则不可执行。
     ```bash
     python skills/openclaw/short-drama/scripts/dubbing.py prepare --series "<剧名>" --episode N --language zh-CN --provider "$VIDEO_PROVIDER"
     ```
     `prepare` 读 `lines.json` 把台词契约写进每镜 `generation_prompt`：默认 **native-first**（要求模型**逐字说台词**、成片用原生对白）；旁白/纯动作镜不给台词。
     - **一镜可有多句画内对白**：视频模型能连着说，`prepare` 会把该镜多句按时间顺序全写进 `generation_prompt`（各句按 `at` 定位、缺则顺排，累计须塞进片段档）。**不必为「多句」硬拆成一句一镜**——只有旁白与画内对白仍不同镜（避免原生人声与旁白重叠）。
-    - **别用 dub 躲避 native-first**：`prepare --dialogue-mode dub`（全剧不给台词、后期全 TTS）**已加硬门**——没有 `ai_video.py probe-dialogue` 实测模型不忠实、也没显式 `--force-dub` 时会被拒绝。撞到多句/一句约束**不是**改 dub 的理由（多句直接一起塞进 prompt）。默认让模型试原生、`audit` 只对真说错的镜逐镜换 TTS。
-17. **逐镜生视频（脚本驱动，强制把台词喂给模型）**：
-    ```bash
-    python skills/openclaw/short-drama/scripts/drama_ops.py generate --series "<剧名>" --episode N --ratio "<9:16或16:9>"
-    ```
-    `prepare` 会把最终 provider/model 锁进 shots.json；`generate` 必须复用，显式传入冲突值会硬拦。它过 prompt 硬门后逐镜调 ai-video-gen（自动带 `--audio auto --ratio <已确认画幅> --duration gen_duration`），clip 写回并记进度；已有 clip 自动跳过，`--dry-run` 看计划、`--only 1,3` 单镜重生、`--force` 强制重生。
+    - `probe-dialogue` 会产生额外付费生成，未在 managed runner 允许列表，不可运行。
+17. **逐镜生视频**：DSH managed v0.2 不得运行 `drama_ops.py generate`。它尚未改造为“每镜一次 `mediaops_run_model_script`”，因此到此步必须停止并告知用户当前限制。
     - **片段档必须 ≥ 该镜台词时长**（步骤 13 `plan` 已选档、超长镜已拆）：画面时长由真实片段主导，成片只做**自然裁剪**，绝不慢放/循环/冻结。片段比台词还短 → `align` 硬失败，重生成/拆镜。
     - 跨镜/跨集连贯用 `references/character-consistency.md`「尾帧→下一镜首帧」（`--only` 单镜重生成时把上一镜尾帧填进该镜 frame）。
 
@@ -164,11 +164,7 @@ progress.json           逐集/逐镜生成进度（控费、断点续跑）
     - `emotion` 是给配音引擎的**情感通道**（不是让角色把情绪念出来），写具体：愤怒/冷笑/隐忍/崩溃大哭/颤抖/惊恐/得意/温柔/失望/嘲讽/急切/沉痛/撒娇 等——闭源云 provider 转成「用<情绪>的语气说」驱动演绎。**⚠️ 音色不随情绪改变**：`emotion` 只调语调/语速/情感（`emotion_prosody` 叠加 rate/pitch/volume 增量），角色音色身份始终是 cast.json 里绑定的那一个 `voice_id`——同一角色跨镜跨集音色恒定，只有情绪语调在变。
     - **`shot` = 这句台词所属的镜头 idx（必填）**：让每句配音/字幕落到对应画面片段上；一镜可多句；纯动作镜无台词就不出现在 lines 里。
     - **`at` = 这句台词在**本镜片段内**的起始秒（可选，秒）**：对齐画面里角色**开始说话/嘴动**的时刻（如角色前 1.5s 在走动、之后才开口 → `at: 1.5`）。不写则从头顺序排。**这是「说话时刻对得上画面」的关键**；台词之间的空白就是动作/停顿/音效的时间。
-20. **时间线对齐配音**（必须在每镜生成并审计后运行）：
-    ```bash
-    python skills/openclaw/short-drama/scripts/dubbing.py align --series "<剧名>" --episode N
-    ```
-    读 `clip-audit.json` 后，`native` 画内对白**不合成 TTS、直接用模型原声**，原生 ASR 起止时间写入字幕；旁白和 `dub` 对白进入独立配音轨（`dub` 镜原生轨在合成时丢弃、纯 TTS，避免双重人声）。产出 `voice.mp3`、同轴 `voice.srt`、`timing.json`，并把真实片段时长写回 shots.json。
+20. **时间线对齐配音**：当 `align/dub` 会为旁白或错误对白调用云 TTS 时，DSH managed v0.2 不可直接运行。未来需改造为逐行 `mediaops_run_model_script`+逐次审批后才能恢复自动链。
     - **画面时长 = 真实片段时长（铁律③）**：`align` 探测每镜真实 clip 时长作画面时长，台词按 `at` 叠在其上、其余留给动作/停顿/音效——成片就是**片段原样播放、绝不冻结/拉伸/循环**。
     - **时间线硬拦**：有台词镜缺 clip、`at` 为负、同镜台词重叠、或 `at`+真实配音时长超出片段，任一情况均失败；必须重生成、拆镜、精简台词或修正 `at`，禁止让字幕/声音拖到下一镜。
     - lines 没标 `shot` 或 speaker 配错 → `align` 拦截/告警，按提示修 lines.json 重跑。

@@ -3,9 +3,16 @@ import type {
   LibraryKind,
   Overview,
   PublicationItem,
+  ReferenceItem,
   TopicItem,
   ViralItem,
   WorkbenchSnapshot,
+  ModelConfigSnapshot,
+  ModelFieldItem,
+  ModelGroupItem,
+  ModelProviderItem,
+  ModelProviderUpdate,
+  ModelValidationResult,
 } from './contracts.ts'
 
 export const API_PREFIX = '/api/dsh-mediaops'
@@ -26,6 +33,10 @@ function stringArray(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) return undefined
   const items = value.flatMap((entry) => typeof entry === 'string' && entry.trim() !== '' ? [entry.trim()] : [])
   return items.length > 0 ? items : undefined
+}
+
+function boolean(value: unknown): boolean {
+  return value === true
 }
 
 function id(value: unknown): string | undefined {
@@ -190,6 +201,35 @@ export async function fetchViral(query = '', signal?: AbortSignal): Promise<Vira
   })
 }
 
+const REFERENCE_KINDS = new Set<LibraryKind>(['topic', 'viral', 'draft', 'publication'])
+
+function normalizeReference(value: unknown): ReferenceItem | undefined {
+  const item = record(value)
+  const kind = text(item?.kind)
+  const itemId = id(item?.id)
+  const label = text(item?.label) ?? text(item?.title)
+  if (item === undefined || kind === undefined || !REFERENCE_KINDS.has(kind as LibraryKind) || itemId === undefined || label === undefined) return undefined
+  if (itemId.length > 512 || label.length > 512) return undefined
+  const description = text(item.description)?.slice(0, 2_000)
+  const hint = text(item.hint)?.slice(0, 512)
+  return {
+    kind: kind as LibraryKind,
+    id: itemId,
+    label,
+    ...(description === undefined ? {} : { description }),
+    ...(hint === undefined ? {} : { hint }),
+    updatedAt: text(item.updatedAt) ?? text(item.updated_at),
+  }
+}
+
+/** Search all referenceable MediaOps records with a single Host request. */
+export async function fetchReferences(query = '', signal?: AbortSignal): Promise<ReferenceItem[]> {
+  const params = new URLSearchParams({ limit: '48' })
+  if (query.trim() !== '') params.set('q', query.trim())
+  const payload = await request(`/references?${params}`, signal === undefined ? {} : { signal })
+  return list(payload, ['items', 'references']).flatMap(item => normalizeReference(item) ?? [])
+}
+
 export async function fetchWorkbench(signal?: AbortSignal): Promise<WorkbenchSnapshot> {
   const options: RequestInit = signal === undefined ? {} : { signal }
   const settled = await Promise.allSettled([
@@ -259,4 +299,97 @@ export async function fetchReference(kind: LibraryKind, id: string, signal: Abor
   return serialized.length > REFERENCE_LIMIT
     ? `${serialized.slice(0, REFERENCE_LIMIT)}\n[MediaOps reference truncated]`
     : serialized
+}
+
+const MODEL_GROUPS = new Set(['image', 'video', 'music', 'voice'])
+const MODEL_FIELD_KINDS = new Set(['text', 'url', 'select', 'boolean'])
+const SENSITIVE_FIELD_NAME = /(?:API[_-]?KEY|SECRET|TOKEN|PASSWORD|CREDENTIAL|ACCESS[_-]?KEY)/iu
+
+function normalizeModelField(value: unknown): ModelFieldItem | undefined {
+  const item = record(value)
+  const key = text(item?.key)
+  const label = text(item?.label)
+  const kind = text(item?.kind)
+  if (!item || !key || !label || !kind || !MODEL_FIELD_KINDS.has(kind)) return undefined
+  const secret = boolean(item.secret) || SENSITIVE_FIELD_NAME.test(key)
+  return {
+    key,
+    label,
+    required: boolean(item.required),
+    secret,
+    kind: kind as ModelFieldItem['kind'],
+    choices: stringArray(item.choices),
+    placeholder: text(item.placeholder),
+    help: text(item.help),
+    ...(secret ? { configured: boolean(item.configured) } : { value: typeof item.value === 'string' ? item.value : '' }),
+  }
+}
+
+function normalizeModelProvider(value: unknown): ModelProviderItem | undefined {
+  const item = record(value)
+  const itemId = text(item?.id)
+  const label = text(item?.label)
+  if (!item || !itemId || !label || !Array.isArray(item.fields)) return undefined
+  return {
+    id: itemId,
+    label,
+    capabilities: stringArray(item.capabilities) ?? [],
+    enabled: boolean(item.enabled),
+    selected: boolean(item.selected),
+    configured: boolean(item.configured),
+    ready: boolean(item.ready),
+    allowPrivateNetwork: boolean(item.allowPrivateNetwork),
+    missingRequired: stringArray(item.missingRequired) ?? [],
+    fields: item.fields.flatMap(entry => normalizeModelField(entry) ?? []),
+    updatedAt: text(item.updatedAt),
+  }
+}
+
+function normalizeModelGroup(value: unknown): ModelGroupItem | undefined {
+  const item = record(value)
+  const itemId = text(item?.id)
+  const label = text(item?.label)
+  if (!item || !itemId || !MODEL_GROUPS.has(itemId) || !label || !Array.isArray(item.providers)) return undefined
+  return {
+    id: itemId as ModelGroupItem['id'],
+    label,
+    description: text(item.description) ?? '',
+    selectedProvider: text(item.selectedProvider),
+    providers: item.providers.flatMap(entry => normalizeModelProvider(entry) ?? []),
+  }
+}
+
+/** Defense-in-depth normalizer: secret-looking fields never retain a value. */
+export function normalizeModelConfig(value: unknown): ModelConfigSnapshot {
+  const item = record(value)
+  return {
+    version: typeof item?.version === 'number' && Number.isSafeInteger(item.version) ? item.version : 1,
+    groups: Array.isArray(item?.groups) ? item.groups.flatMap(entry => normalizeModelGroup(entry) ?? []) : [],
+  }
+}
+
+export async function fetchModelConfig(signal?: AbortSignal): Promise<ModelConfigSnapshot> {
+  return normalizeModelConfig(await request('/model-config', signal === undefined ? {} : { signal }))
+}
+
+export async function updateModelProvider(groupId: string, providerId: string, update: ModelProviderUpdate): Promise<ModelConfigSnapshot> {
+  const payload = await request(`/model-config/${encodeURIComponent(groupId)}/${encodeURIComponent(providerId)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(update),
+  })
+  return normalizeModelConfig(payload)
+}
+
+export async function clearModelProvider(groupId: string, providerId: string): Promise<ModelConfigSnapshot> {
+  return normalizeModelConfig(await request(`/model-config/${encodeURIComponent(groupId)}/${encodeURIComponent(providerId)}`, { method: 'DELETE' }))
+}
+
+export async function verifyModelProvider(groupId: string, providerId: string): Promise<ModelValidationResult> {
+  const payload = record(await request(`/model-config/${encodeURIComponent(groupId)}/${encodeURIComponent(providerId)}/verify`, { method: 'POST' }))
+  return {
+    configured: boolean(payload?.configured),
+    ready: boolean(payload?.ready),
+    errors: stringArray(payload?.errors) ?? [],
+  }
 }

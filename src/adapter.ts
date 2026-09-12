@@ -37,6 +37,8 @@ export interface AdapterResult extends RunResult {
   outcome: 'submitted' | 'draft_created' | 'scheduled' | 'published' | 'uncertain'
 }
 
+export type CommandRunner = (spec: CommandSpec, signal?: AbortSignal, timeoutMs?: number) => Promise<RunResult>
+
 interface AccountObservation {
   label: string
   identity: string
@@ -416,6 +418,15 @@ function redact(text: string): string {
     .replace(/Bearer\s+[A-Za-z0-9._~+\/-]+/gi, 'Bearer [REDACTED]')
 }
 
+function redactRunResult(result: RunResult): RunResult {
+  return {
+    ...result,
+    stdout: redact(result.stdout),
+    stderr: redact(result.stderr),
+    ...(result.error === undefined ? {} : { error: redact(result.error) }),
+  }
+}
+
 function allowedUrl(platform: MediaPlatform, text: string): string {
   const hosts: Record<MediaPlatform, RegExp> = {
     xiaohongshu: /(^|\.)xiaohongshu\.com$/i,
@@ -444,6 +455,19 @@ function allowedUrl(platform: MediaPlatform, text: string): string {
     }
   }
   return ''
+}
+
+export function classifyAdapterOutcome(
+  platform: MediaPlatform,
+  scheduledAt: string,
+  output: string,
+  result: RunResult,
+): AdapterResult['outcome'] {
+  const successful = result.started && result.code === 0 && !result.timedOut && !result.aborted
+  if (!successful) return 'uncertain'
+  if (platform === 'wechat-official' && /(?:草稿\s*media_id|"media_id"\s*:)/iu.test(output)) return 'draft_created'
+  if (platform === 'bilibili' && scheduledAt) return 'scheduled'
+  return 'submitted'
 }
 
 function lastJsonObject(text: string): Record<string, unknown> | undefined {
@@ -482,7 +506,7 @@ function parseAccountObservation(platform: MediaPlatform, expectedLabel: string,
 }
 
 export class PublisherAdapter {
-  constructor(readonly dataDir: string) {}
+  constructor(readonly dataDir: string, private readonly commandRunner: CommandRunner = runCommand) {}
 
   async cleanupSensitiveTemporaryFiles(): Promise<void> {
     const dataRoot = await realpath(this.dataDir)
@@ -551,7 +575,7 @@ export class PublisherAdapter {
     }
     try {
       const probe = this.accountProbe(platform, accountKey, workspace, publisherOptions)
-      const probeResult = await runCommand(probe, signal, 120_000)
+      const probeResult = redactRunResult(await this.commandRunner(probe, signal, 120_000))
       const probeOutput = redact(`${probeResult.stdout}\n${probeResult.stderr}`.trim())
       if (!probeResult.started || probeResult.code !== 0 || probeResult.timedOut || probeResult.aborted) throw new Error(`账号探针未通过（以下为不可信 publisher 诊断）: ${probeOutput.slice(-1_500) || probeResult.error || `exit ${String(probeResult.code)}`}`)
       const observed = parseAccountObservation(platform, accountKey, probeOutput)
@@ -567,7 +591,7 @@ export class PublisherAdapter {
       fake.snapshot.publisherOptions = effectiveOptions
       const spec = buildExecutionSpec(fake, this.dataDir)
       const dryRunArgs = spec.args.filter(item => item !== '--exec')
-      const result = await runCommand({ ...spec, args: dryRunArgs }, signal, 120_000)
+      const result = redactRunResult(await this.commandRunner({ ...spec, args: dryRunArgs }, signal, 120_000))
       const output = redact(`${result.stdout}\n${result.stderr}`.trim())
       if (!result.started || result.code !== 0 || result.timedOut || result.aborted) throw new Error(`publisher adapter 只读 dry-run 未通过（以下为不可信 publisher 诊断）: ${output.slice(-1_500) || result.error || `exit ${String(result.code)}`}`)
       const combined = `${probeOutput}\n${output}`
@@ -601,7 +625,7 @@ export class PublisherAdapter {
   async execute(publication: Publication, signal?: AbortSignal): Promise<AdapterResult> {
     const expected = publication.snapshot
     const probeSpec = this.accountProbe(publication.platform, expected.accountLabel, expected.workspaceRoot, expected.publisherOptions)
-    const probeResult = await runCommand(probeSpec, signal, 120_000)
+    const probeResult = redactRunResult(await this.commandRunner(probeSpec, signal, 120_000))
     const probeOutput = redact(`${probeResult.stdout}\n${probeResult.stderr}`.trim())
     let observation: AccountObservation
     try {
@@ -631,19 +655,12 @@ export class PublisherAdapter {
     }
     await this.verifyFrozenPayload(publication)
     const spec = buildExecutionSpec(publication, this.dataDir)
-    const result = await runCommand(spec, signal)
+    const result = redactRunResult(await this.commandRunner(spec, signal))
     const output = redact(`${result.stdout}\n${result.stderr}`.trim())
     const commandDigest = sha256(JSON.stringify([spec.command, spec.args]))
     const outputDigest = sha256(output)
     const externalUrl = allowedUrl(publication.platform, output)
-    const successful = result.started && result.code === 0 && !result.timedOut && !result.aborted
-    const outcome: AdapterResult['outcome'] = !successful
-      ? 'uncertain'
-      : publication.platform === 'wechat-official' && /(?:草稿\s*media_id|"media_id"\s*:)/i.test(output)
-        ? 'draft_created'
-        : publication.platform === 'bilibili' && publication.snapshot.scheduledAt
-          ? 'scheduled'
-          : 'submitted'
+    const outcome = classifyAdapterOutcome(publication.platform, publication.snapshot.scheduledAt, output, result)
     return {
       ...result,
       commandDigest,

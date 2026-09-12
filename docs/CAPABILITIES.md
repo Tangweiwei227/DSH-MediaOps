@@ -2,7 +2,7 @@
 
 > DSH-MediaOps 内置来自 [ZJU-REAL/Easel](https://github.com/ZJU-REAL/Easel) 的完整内容运营能力包（来源快照：`660dfd2b75d10bea48f57be22d8da694f88851b8`）。
 > 每个条目对应 `skills/openclaw/` 中一个可用的 `SKILL.md`；公共脚本与资源位于 `skills/shared/`。
-> 当前共 **112 个 Skill**。能力由 DSH 按需加载；发布层中 7 个只读/生成型 Skill 可正常调用，13 个带外部写入或派发路径的 Host-only Skill 禁止模型/用户直接调用，真实平台脚本只允许由 Host 受控 adapter 执行。本页说明能力边界，具体输入、输出、依赖和流程以各目录的 `SKILL.md`、运行时注入约束与 `EASEL-META.md` 为准。
+> 当前共 **112 个 Skill**。Skill 正文在选中时读取；受当前 DSH provider 协议限制，全部可调用 Skill 的名称与描述仍会进入模型上下文，完整的分层按需展开尚未实现。发布层中 7 个只读/生成型 Skill 可正常调用，13 个带外部写入或派发路径的 Host-only Skill 禁止模型/用户直接调用，真实平台脚本只允许由 Host 受控 adapter 执行。本页说明能力边界，具体输入、输出、依赖和流程以各目录的 `SKILL.md`、运行时注入约束与 `EASEL-META.md` 为准。
 
 ## 能力分层
 

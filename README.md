@@ -2,6 +2,8 @@
 
 DSH-MediaOps 是一个原生 DeepSeek Harness（DSH）插件，把 [Easel](https://github.com/ZJU-REAL/Easel) 的完整媒体运营能力重新组织成「对话即工作台」的 AI-native 体验。
 
+[官网](https://dsh-mediaops.tevin2501689480.chatgpt.site) · [插件说明书](docs/PLUGIN_MANUAL.zh-CN.md) · [能力目录](docs/CAPABILITIES.md) · [Issues 可行性审查](docs/ISSUE_TRIAGE_2026-09-12.md)
+
 你可以在对话框里 `@` 选题或爆款、拉取热点、把候选收进爆款库、整理为选题、生成跨平台草稿，并在逐项核对与 DSH 原生审批后由 Host 受控发布。插件也提供 MediaOps 工作台，用于查看选题、爆款、草稿和发布队列。
 
 ## 对话里的完整闭环
@@ -18,7 +20,7 @@ DSH-MediaOps 是一个原生 DeepSeek Harness（DSH）插件，把 [Easel](https
 
 ## AI-native 交互
 
-- `@选题库 / @爆款库`：通过 DSH 输入源候选选择条目后，客户端保存稳定引用；消息提交时才序列化为有长度限制、带来源声明的上下文。手工输入类似 `@标题` 的普通文本、或从剪贴板粘贴标题，不会自动变成结构化引用。
+- `@选题库 / @爆款库 / @草稿 / @发布记录`：通过 DSH 输入源候选选择条目后，客户端保存稳定引用；消息提交时才序列化为有长度限制、带来源声明的上下文。发布记录只提供脱敏安全投影。手工输入类似 `@标题` 的普通文本、或从剪贴板粘贴标题，不会自动变成结构化引用。
 - 对话式入库：保存爆款、创建或更新选题、保存草稿都由参数化工具完成；工具没有成功写入时，Agent 不会声称「已经入库」。
 - 对话式热点发现：支持微博、抖音、知乎、头条、小红书、B站、百度、AI 与 IT 热点，并按平台如实报告源错误。
 - 可追踪生产链路：选题保留来源爆款，草稿关联选题、目标平台和素材。
@@ -41,7 +43,7 @@ DSH-MediaOps 是一个原生 DeepSeek Harness（DSH）插件，把 [Easel](https
 
 完整逐项说明见 [能力目录](docs/CAPABILITIES.md)。
 
-这些 Skill 由 DSH bundled provider 惰性加载；用户或项目的同名 Skill 优先。发布层中的质量检查、内容改编、人设检查、SEO、版权风险与评论策略等 7 个只读/生成型 Skill 可正常调用；13 个包含真实平台写入、批量派发、通知、短链或排期派发路径的 Host-only Skill 不开放模型或用户直接调用。真实平台脚本只能由 `mediaops_execute_publish` 的 Host adapter 以固定 argv 执行。
+这些 Skill 由 DSH bundled provider 提供：Skill 正文只在选中时读取，用户或项目的同名 Skill 优先。受当前 DSH provider 协议限制，所有可调用 Skill 的名称和描述仍会进入模型上下文，完整的分层按需展开尚未实现。发布层中的质量检查、内容改编、人设检查、SEO、版权风险与评论策略等 7 个只读/生成型 Skill 可正常调用；13 个包含真实平台写入、批量派发、通知、短链或排期派发路径的 Host-only Skill 不开放模型或用户直接调用。真实平台脚本只能由 `mediaops_execute_publish` 的 Host adapter 以固定 argv 执行。
 
 ## 7 个发布连接器
 
@@ -138,7 +140,7 @@ rm -rf ~/.dsh/mediaops
 - Bilibili：`biliup` CLI 与已登录 Cookie；
 - 音视频和部分创作 Skill：FFmpeg、Pillow、模型服务或第三方 API，详见对应 `SKILL.md`。
 
-不要把密钥写入草稿、`publisherOptions`、命令行参数或 Git。代理 URL 不能包含用户名/密码；代理凭证应放在 Host 环境变量中。
+不要把密钥写入草稿、`publisherOptions`、命令行参数或 Git。支持代理的平台连接器中，代理 URL 不能包含用户名/密码，凭证应由 Host 环境管理；受管多模态模型请求为保证 DNS 固定连接，会忽略 HTTP(S) 代理环境。
 
 ## 使用示例
 
@@ -222,6 +224,12 @@ DSH 的 id 定向 patch 会整体替换该行 `config`，不是逐字段深度�
 
 配置覆盖与组件说明见 [架构文档](docs/ARCHITECTURE.md)。
 
+### 多模态模型
+
+DSH 设置中的“多模态模型”页可配置文生图、文生视频、音乐和云端语音 Provider；当前不包含受管 ASR/语音转写组。每次只使用明确选中的默认 Provider，不自动故障转移。API Key 单独保存在 `<data-root>/secrets/multimodal-models.json`（目录 `0700`、文件 `0600`），不会进入 `state.json`、浏览器回读、对话或审批。密钥更新明确区分保留、更换与清除。公网 HTTP 始终拒绝；只有显式开启私网权限，且目标全部解析为 loopback、RFC1918 或 IPv6 ULA 地址时，私网 HTTP 才可用。该授权只适用于 API endpoint，媒体下载仍只允许公网 HTTPS 目标。
+
+Bundled skills 通过 `mediaops_run_model_script` 使用 Host 注入的白名单环境；该工具只允许运行四个预定义脚本及受限 argv，绑定当前 workspace、输出限制在真实的 `outputs/` 目录、`shell: false`，并在可能产生 API 费用前请求 DSH 原生审批。批准记录与同一个调用一次性绑定，配置或输入变化会被拒绝；本地输入按获批 SHA-256 复制为只读 snapshot。受控请求禁用环境代理并固定已验证的 DNS 地址，Provider 私网授权不会扩散到媒体下载。发起 Provider 请求前，脚本用 Host 注入的 device/inode 复核 workspace 与 `outputs/`，再以 `O_NOFOLLOW`、`dir_fd` 打开并持有目标父目录；临时文件和最终替换都相对该描述符执行，受管 FFmpeg 转码使用预先打开、可 seek 的普通文件描述符。模型子进程被 SIGKILL，而 Host 与已批准目录身份保持正常时，Host 的 `finally` 会按 run ID 精确清理；若 Host 一并崩溃，则只在可信 v2 pending 记录证明原 owner 已死亡、且目录 inode 仍匹配时恢复。活跃/身份未知 owner 和 v1/畸形记录会保守保留。完整字段、Provider、API 契约和保守恢复边界见 [多模态模型配置](docs/MULTIMODAL_MODELS.md)。
+
 ## 本地开发
 
 ```sh
@@ -244,6 +252,7 @@ dsh plugin --profile desktop add file:/absolute/path/to/DSH-MediaOps
 - 本地 API 只接受 loopback，并检查 localhost Host、浏览器 same-origin 与 cross-site 标记；它不是局域网或公网服务。
 - 选题、爆款、趋势源、平台输出、搜索结果、正文、评论、错误和回执都按不可信数据处理。`@` 引用会 XML 转义、限制长度并标明来源，但这不是提示注入的绝对防护。
 - 发布素材必须是 Host 权威 workspace 内的绝对路径、普通文件且不能是符号链接或远程 URL。正文与附件合计最多 20 个文件，单文件上限 2 GiB、单次总量上限 4 GiB，并预留 256 MiB 磁盘空间；跨预览 staging 使用跨进程锁和 6 GiB 全局配额。
+- 受管多模态输出在网络请求前固定 workspace、`outputs/` 和目标父目录描述符，并以 fd-relative 原子写入；这降低路径替换与符号链接竞态风险，但不替代对本机账户和 workspace 权限的保护。
 - `payloadDigest`、正文/素材哈希和账号身份指纹用于一致性检查，不是数字签名、平台回执或账号所有权证明。
 - 确认、真实执行和人工对账都依赖 DSH 原生审批；审批被拒、超时或当前表层无法完成审批时，动作不会静默放行。
 - Publisher 输出会做有界收集与常见秘密脱敏，但不要依赖日志脱敏替代正确的秘密管理。

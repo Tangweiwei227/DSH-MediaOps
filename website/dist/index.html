@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#08111f">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="description" content="DSH-MediaOps 是面向 DeepSeek Harness 的 AI 原生媒体运营插件，把趋势发现、选题、创作、多模态生产、受控发布与归因带进一个对话。">
+  <meta property="og:title" content="DSH-MediaOps — 对话即媒体运营工作台">
+  <meta property="og:description" content="112 个媒体运营 Skills、7 个发布连接器、多模态模型配置，以及 Host 受控发布。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://dsh-mediaops.tevin2501689480.chatgpt.site">
+  <title>DSH-MediaOps — 对话即媒体运营工作台</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="./site.webmanifest">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+
+  <header class="site-header" data-header>
+    <div class="shell nav-shell">
+      <a class="brand" href="#top" aria-label="DSH-MediaOps 首页">
+        <span class="brand-mark" aria-hidden="true"><span>D</span><span>M</span></span>
+        <span class="brand-copy"><strong>DSH-MediaOps</strong><small>AI NATIVE · LOCAL FIRST</small></span>
+      </a>
+      <nav class="desktop-nav" aria-label="主导航">
+        <a href="#workflow">工作流</a>
+        <a href="#multimodal">多模态</a>
+        <a href="#safety">发布安全</a>
+        <a href="#install">安装</a>
+      </nav>
+      <a class="header-action" href="https://github.com/Tangweiwei227/DSH-MediaOps" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top" aria-labelledby="hero-title">
+      <div class="hero-lines" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <div class="shell hero-grid">
+        <div class="hero-copy">
+          <p class="eyebrow"><span class="live-dot" aria-hidden="true"></span> DeepSeek Harness Plugin · v0.2</p>
+          <h1 id="hero-title">把媒体运营，<br><em>收进一个对话。</em></h1>
+          <p class="hero-lede">从热点发现、爆款拆解、选题入库，到多模态生产与受控发布。DSH-MediaOps 让 Agent 理解你的资料、调用真实工具，也尊重每一道授权边界。</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#install">开始安装 <span aria-hidden="true">↓</span></a>
+            <a class="button button-secondary" href="https://github.com/Tangweiwei227/DSH-MediaOps/blob/main/docs/PLUGIN_MANUAL.zh-CN.md" target="_blank" rel="noreferrer">阅读完整说明书 <span aria-hidden="true">↗</span></a>
+          </div>
+          <dl class="hero-stats" aria-label="产品数据">
+            <div><dt>112</dt><dd>Bundled Skills</dd></div>
+            <div><dt>7</dt><dd>发布连接器</dd></div>
+            <div><dt>6</dt><dd>运营能力层</dd></div>
+          </dl>
+        </div>
+
+        <div class="ops-window" aria-label="对话式媒体运营示意">
+          <div class="ops-titlebar">
+            <span class="window-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span>MEDIAOPS / LIVE SESSION</span>
+            <span class="status-online"><i></i> LOCAL</span>
+          </div>
+          <div class="ops-body">
+            <div class="message message-user">
+              <span class="message-role">YOU</span>
+              <p>基于 <mark>@AI Agent 选题</mark> 写一版小红书稿，做 4 张配图，先不要发布。</p>
+            </div>
+            <div class="trace" aria-label="执行轨迹">
+              <div><span class="trace-state done">✓</span><span><b>READ</b> 读取选题库引用</span><time>0.2s</time></div>
+              <div><span class="trace-state done">✓</span><span><b>ROUTE</b> 匹配创作 Skills</span><time>0.1s</time></div>
+              <div><span class="trace-state pulse">↻</span><span><b>CREATE</b> 调用已配置图像模型</span><time>RUN</time></div>
+            </div>
+            <div class="message message-agent">
+              <span class="message-role">MEDIAOPS</span>
+              <p>正文与视觉提示词已生成。4 张图将写入当前工作区；完成后我会保存为 <code>draft</code>，不会触发发布。</p>
+              <div class="artifact-row" aria-label="生成产物">
+                <span>稿件.md</span><span>配图 × 4</span><span class="artifact-safe">未发布</span>
+              </div>
+            </div>
+          </div>
+          <form class="composer" action="#workflow">
+            <span aria-hidden="true">@</span>
+            <label class="sr-only" for="demo-input">示例输入框</label>
+            <input id="demo-input" value="继续优化标题…" readonly>
+            <button type="submit" aria-label="查看工作流">↗</button>
+          </form>
+        </div>
+      </div>
+      <div class="shell trust-strip" aria-label="产品原则">
+        <span>01 / LOCAL-FIRST DATA</span>
+        <span>02 / HOST-CONTROLLED TOOLS</span>
+        <span>03 / EXPLICIT APPROVAL</span>
+        <span>04 / VERIFIABLE RECEIPTS</span>
+      </div>
+    </section>
+
+    <section class="section workflow-section" id="workflow" aria-labelledby="workflow-title">
+      <div class="shell">
+        <div class="section-heading split-heading">
+          <div>
+            <p class="eyebrow">AI-NATIVE WORKFLOW</p>
+            <h2 id="workflow-title">不用在十个后台之间<br>搬运上下文。</h2>
+          </div>
+          <p>资料不是散落的复制粘贴，动作也不是藏在层层菜单里。用 <code>@</code> 引用真实记录，用自然语言推进流程，用 <code>/</code> 召回固定工作流。</p>
+        </div>
+
+        <ol class="workflow-rail">
+          <li>
+            <span class="step-no">01</span>
+            <div><strong>发现</strong><p>跨平台拉取热点，保留来源、时间与失败状态。</p></div>
+            <span class="step-command">/今日爆款</span>
+          </li>
+          <li>
+            <span class="step-no">02</span>
+            <div><strong>沉淀</strong><p>把候选保存为爆款，再整理成有来源关系的选题。</p></div>
+            <span class="step-command">@爆款库</span>
+          </li>
+          <li>
+            <span class="step-no">03</span>
+            <div><strong>生产</strong><p>路由文案、图片、音频、视频 Skills，产物写入工作区。</p></div>
+            <span class="step-command">@选题库</span>
+          </li>
+          <li>
+            <span class="step-no">04</span>
+            <div><strong>发布</strong><p>冻结载荷、核对预览，两次原生审批后才真实执行。</p></div>
+            <span class="step-command">/审核并发布</span>
+          </li>
+          <li>
+            <span class="step-no">05</span>
+            <div><strong>归因</strong><p>让回执、链接与后续指标重新进入内容决策。</p></div>
+            <span class="step-command">/今日盘点</span>
+          </li>
+        </ol>
+
+        <div class="command-lab" data-command-lab>
+          <div class="command-nav" role="tablist" aria-label="对话能力示例">
+            <button class="is-active" role="tab" aria-selected="true" data-command="mention">@ 引用资料</button>
+            <button role="tab" aria-selected="false" data-command="action">/ 启动工作流</button>
+            <button role="tab" aria-selected="false" data-command="publish">确认后发布</button>
+          </div>
+          <div class="command-panel">
+            <div>
+              <span class="terminal-label">PROMPT</span>
+              <p data-command-prompt>把 <mark>@「一个人也能跑的 AI 内容流水线」</mark> 改写成 3 个适合我的差异化选题，先展示，不要入库。</p>
+            </div>
+            <div class="command-result">
+              <span class="terminal-label">WHAT HAPPENS</span>
+              <p data-command-result>输入框保存稳定记录 ID；发送时才序列化成有长度限制、带来源声明的模型上下文。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section multimodal-section" id="multimodal" aria-labelledby="multimodal-title">
+      <div class="shell multimodal-grid">
+        <div class="section-heading">
+          <p class="eyebrow">MULTIMODAL CONTROL PLANE</p>
+          <h2 id="multimodal-title">模型可以替换，<br>密钥不会出现在对话里。</h2>
+          <p>在 MediaOps 设置中统一管理图像、视频、音乐与云端语音模型。配置由 Host 保管，只把能力状态暴露给 Agent；每个 Skill 仅获得运行所需的白名单环境变量。</p>
+          <ul class="check-list">
+            <li><span>✓</span> 四组 Provider 单路选择，不做隐式故障转移</li>
+            <li><span>✓</span> API Key 仅显示配置状态，支持保留、替换与清除</li>
+            <li><span>✓</span> 审批绑定配置与输入快照，变化即拒绝</li>
+            <li><span>✓</span> 公网 HTTP 始终拒绝；私网 HTTP 必须显式授权</li>
+            <li><span>✓</span> DNS 固定连接、无环境代理、媒体只走公网 HTTPS</li>
+            <li><span>✓</span> O_NOFOLLOW + dir_fd 原子落盘；FFmpeg 使用可 seek fd</li>
+            <li><span>✓</span> 子进程 SIGKILL 精确清理；Host 崩溃仅按可信 v2 保守恢复</li>
+            <li><span>✓</span> 预定义脚本、固定 argv、无 shell 执行</li>
+            <li><span>✓</span> 本地私有目录持久化，不进入 Git 与稿件</li>
+          </ul>
+          <a class="text-link" href="https://github.com/Tangweiwei227/DSH-MediaOps/blob/main/docs/PLUGIN_MANUAL.zh-CN.md#7-多模态模型配置" target="_blank" rel="noreferrer">查看配置指南 <span aria-hidden="true">↗</span></a>
+        </div>
+
+        <div class="model-console" aria-label="多模态模型配置界面示意">
+          <div class="model-console-head">
+            <div><span class="terminal-label">MODEL ROUTER</span><strong>4 / 4 能力已就绪</strong></div>
+            <span class="health"><i></i> HEALTHY</span>
+          </div>
+          <div class="model-list">
+            <article>
+              <span class="model-icon">IMG</span>
+              <div><strong>图像生成</strong><small>OpenAI-compatible · image-pro</small></div>
+              <code>KEY SET</code><span class="model-ready">READY</span>
+            </article>
+            <article>
+              <span class="model-icon">VID</span>
+              <div><strong>视频生成</strong><small>DashScope · video-v1</small></div>
+              <code>KEY SET</code><span class="model-ready">READY</span>
+            </article>
+            <article>
+              <span class="model-icon">MUS</span>
+              <div><strong>音乐生成</strong><small>Suno-compatible · music-v1</small></div>
+              <code>KEY SET</code><span class="model-ready">READY</span>
+            </article>
+            <article>
+              <span class="model-icon">VOC</span>
+              <div><strong>云端语音</strong><small>OpenAI-compatible · voice-v1</small></div>
+              <code>KEY SET</code><span class="model-ready">READY</span>
+            </article>
+          </div>
+          <div class="model-foot"><span>Secrets: host-only</span><span>Runtime: allowlist env</span><span>Logs: redacted</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section capability-section" aria-labelledby="capability-title">
+      <div class="shell">
+        <div class="section-heading split-heading">
+          <div>
+            <p class="eyebrow">112 BUNDLED SKILLS</p>
+            <h2 id="capability-title">从灵感到复盘，<br>不是一袋散装提示词。</h2>
+          </div>
+          <p>来自 Easel 的完整媒体运营能力被组织为六层目录；Skill 正文在选中时读取，用户与项目内同名 Skill 始终优先。当前 Host 仍会注入可调用 Skill 的名称与描述。</p>
+        </div>
+        <div class="capability-matrix">
+          <article><span>01</span><strong>通用</strong><b>6</b><p>资产、模板、资料与批处理</p></article>
+          <article><span>02</span><strong>发现</strong><b>9</b><p>趋势、竞品、内容缺口与 UGC</p></article>
+          <article><span>03</span><strong>策划</strong><b>16</b><p>定位、受众、矩阵、排期与活动</p></article>
+          <article><span>04</span><strong>创作</strong><b>50</b><p>文案、图片、音频、视频与复合内容</p></article>
+          <article><span>05</span><strong>发布</strong><b>20</b><p>改编、质检、风险、互动与连接器</p></article>
+          <article><span>06</span><strong>归因</strong><b>11</b><p>数据、评论、ROI、复盘与策略迭代</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section safety-section" id="safety" aria-labelledby="safety-title">
+      <div class="shell safety-grid">
+        <div class="safety-copy">
+          <p class="eyebrow">HOST-CONTROLLED PUBLISHING</p>
+          <h2 id="safety-title">“发布”不是一句<br>可以含糊理解的话。</h2>
+          <p>真实写入平台前，正文、素材、账号与平台参数先被冻结为不可变快照。模型看不到执行密钥，也不能在确认后偷偷替换载荷。</p>
+          <div class="platforms" aria-label="支持的发布平台">
+            <span>小红书</span><span>抖音</span><span>快手</span><span>视频号</span><span>公众号</span><span>知乎</span><span>B站</span>
+          </div>
+        </div>
+        <ol class="safety-protocol">
+          <li><span>01</span><div><strong>账号探针 + Dry-run</strong><p>确认目标账号与本地依赖，尚不产生外部写入。</p></div><b>READ ONLY</b></li>
+          <li><span>02</span><div><strong>冻结与完整预览</strong><p>正文和素材复制到私有 staging，并生成摘要指纹。</p></div><b>IMMUTABLE</b></li>
+          <li><span>03</span><div><strong>确认授权</strong><p>用户明确确认后，DSH 弹出第一次原生审批。</p></div><b>APPROVAL 1</b></li>
+          <li><span>04</span><div><strong>真实执行</strong><p>Host 复核冻结文件，再发起第二次审批与固定参数执行。</p></div><b>APPROVAL 2</b></li>
+          <li><span>05</span><div><strong>回执与对账</strong><p>平台“已接受”不冒充“已公开”；取得证据后才标记 published。</p></div><b>EVIDENCE</b></li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="section install-section" id="install" aria-labelledby="install-title">
+      <div class="shell install-grid">
+        <div>
+          <p class="eyebrow">GET STARTED</p>
+          <h2 id="install-title">把工作台装进 DSH。</h2>
+          <p>需要 DSH Desktop 或 CLI、Node.js 22.19+ / 24+，以及 pnpm。安装后完全退出并重启 DSH Desktop。</p>
+          <div class="install-links">
+            <a class="button button-secondary" href="https://github.com/Tangweiwei227/DSH-MediaOps" target="_blank" rel="noreferrer">查看源码 <span aria-hidden="true">↗</span></a>
+            <a class="text-link" href="https://github.com/Tangweiwei227/DSH-MediaOps/issues" target="_blank" rel="noreferrer">问题与路线图 <span aria-hidden="true">↗</span></a>
+          </div>
+        </div>
+        <div class="install-terminal">
+          <div class="terminal-top"><span>TERMINAL</span><button type="button" data-copy="#install-command">复制命令</button></div>
+          <pre id="install-command"><code><span class="prompt">$</span> dsh plugin --profile desktop add \
+  github:Tangweiwei227/DSH-MediaOps</code></pre>
+          <p><span class="terminal-ok">✓</span> 安装完成后，在输入框键入 <code>@</code> 或 <code>/</code> 验证入口。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="closing" aria-labelledby="closing-title">
+      <div class="shell">
+        <p class="eyebrow">ONE CONVERSATION · FULL LOOP</p>
+        <h2 id="closing-title">把精力留给判断，<br><em>把流程交给 MediaOps。</em></h2>
+        <a class="button button-light" href="https://github.com/Tangweiwei227/DSH-MediaOps" target="_blank" rel="noreferrer">在 GitHub 开始使用 <span aria-hidden="true">↗</span></a>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="shell footer-grid">
+      <div><strong>DSH-MediaOps</strong><p>AI 原生媒体运营插件 · Apache-2.0</p></div>
+      <nav aria-label="页脚导航">
+        <a href="https://github.com/Tangweiwei227/DSH-MediaOps/blob/main/docs/PLUGIN_MANUAL.zh-CN.md" target="_blank" rel="noreferrer">说明书</a>
+        <a href="https://github.com/Tangweiwei227/DSH-MediaOps/blob/main/docs/CAPABILITIES.md" target="_blank" rel="noreferrer">能力目录</a>
+        <a href="https://github.com/Tangweiwei227/DSH-MediaOps/blob/main/SECURITY.md" target="_blank" rel="noreferrer">安全</a>
+        <a href="https://github.com/ZJU-REAL/Easel" target="_blank" rel="noreferrer">Easel ↗</a>
+      </nav>
+      <p>Built for DeepSeek Harness · <span data-year></span></p>
+    </div>
+  </footer>
+
+  <div class="copy-toast" role="status" aria-live="polite" data-toast>命令已复制</div>
+  <script src="./script.js" defer></script>
+</body>
+</html>

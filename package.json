@@ -1,7 +1,7 @@
 {
   "name": "dsh-mediaops",
-  "version": "0.1.0",
-  "description": "AI-native media operations plugin for DeepSeek Harness: trend discovery, @ topic/viral references, idea library, drafting and confirmed publishing workflows, with 112 bundled Easel skills.",
+  "version": "0.2.0",
+  "description": "AI-native media operations plugin for DeepSeek Harness: multimodal model control, @ references, trend discovery, content libraries and confirmed publishing, with 112 bundled Easel skills.",
   "type": "module",
   "packageManager": "pnpm@11.7.0",
   "engines": {
@@ -31,10 +31,16 @@
   },
   "scripts": {
     "build": "node scripts/build.mjs",
+    "lint:frontmatter": "node scripts/lint-frontmatter.mjs",
+    "lint:website": "node scripts/check-website.mjs",
+    "check:upstream:snapshot": "node scripts/check-easel-drift.mjs --offline",
+    "update:upstream:curated": "node scripts/check-easel-drift.mjs --update-curated-digest",
+    "check:upstream": "node scripts/check-easel-drift.mjs",
+    "report:upstream": "node scripts/sync-skills.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "pack:dry-run": "npm pack --dry-run --cache ./.npm-cache",
-    "check": "pnpm typecheck && pnpm test && pnpm build && pnpm pack:dry-run"
+    "check": "pnpm lint:frontmatter && pnpm lint:website && pnpm check:upstream:snapshot && pnpm typecheck && pnpm test && pnpm build && pnpm pack:dry-run"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
@@ -78,6 +84,7 @@
     "src",
     "skills",
     "docs",
+    "upstream",
     "cordis.patch.yml",
     "README.md",
     "SECURITY.md",
@@ -102,6 +109,7 @@
     "media-ops",
     "content-operations",
     "social-media",
+    "multimodal",
     "easel",
     "ai-native"
   ],
@@ -113,5 +121,5 @@
   "bugs": {
     "url": "https://github.com/Tangweiwei227/DSH-MediaOps/issues"
   },
-  "homepage": "https://github.com/Tangweiwei227/DSH-MediaOps#readme"
+  "homepage": "https://dsh-mediaops.tevin2501689480.chatgpt.site"
 }

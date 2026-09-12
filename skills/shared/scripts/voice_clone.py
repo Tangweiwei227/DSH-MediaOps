@@ -53,6 +53,8 @@ import argparse
 import http.client
 import json
 import os
+import re
+import signal
 import sys
 import time
 import urllib.error
@@ -62,14 +64,58 @@ from pathlib import Path
 from typing import Any
 
 from model_registry import env_aliases, provider_ids, provider_required_env
+from safe_http import (
+    MAX_AUDIO_BYTES,
+    MAX_JSON_BYTES,
+    SecureOutputError,
+    activate_secure_output,
+    bounded_b64decode,
+    close_secure_output,
+    download_atomic,
+    open_atomic_output,
+    read_error_text,
+    read_text_limited,
+    sanitize_log_text,
+    safe_urlopen,
+    save_bytes_atomic,
+    save_response_atomic,
+    secure_output_active,
+    secure_output_stat,
+)
 
 UA = "Easel-voice-clone/0.1"
 PROVIDERS = provider_ids("voice")
 ENV_ALIASES = env_aliases("voice")
+_ACTIVE_FFMPEG_PARTS: set[Path] = set()
+
+
+def _cleanup_ffmpeg_parts() -> None:
+    for temporary in tuple(_ACTIVE_FFMPEG_PARTS):
+        try:
+            temporary.unlink(missing_ok=True)
+        except OSError:
+            pass
+        finally:
+            _ACTIVE_FFMPEG_PARTS.discard(temporary)
+
+
+_PREVIOUS_SIGTERM = signal.getsignal(signal.SIGTERM)
+
+
+def _ffmpeg_sigterm(signum, frame) -> None:  # noqa: ANN001
+    """Clean conversion staging on graceful Host termination, then chain."""
+    _cleanup_ffmpeg_parts()
+    if callable(_PREVIOUS_SIGTERM):
+        _PREVIOUS_SIGTERM(signum, frame)
+    elif _PREVIOUS_SIGTERM != signal.SIG_IGN:
+        raise SystemExit(128 + signum)
+
+
+signal.signal(signal.SIGTERM, _ffmpeg_sigterm)
 
 
 def fail(message: str, exit_code: int = 1) -> None:
-    print(f"错误：{message}", file=sys.stderr)
+    print(f"错误：{sanitize_log_text(message)}", file=sys.stderr)
     raise SystemExit(exit_code)
 
 
@@ -82,6 +128,8 @@ def strip_env_value(value: str) -> str:
 
 
 def find_default_env_file() -> Path | None:
+    if os.environ.get("DSH_MEDIAOPS_MANAGED_MODEL_CONFIG") == "1":
+        return None
     for directory in (Path.cwd(), *Path.cwd().parents):
         env_file = directory / ".env"
         if env_file.is_file():
@@ -196,10 +244,10 @@ def http_json(url: str, headers: dict[str, str], payload: dict | None,
     h.update(headers)
     req = urllib.request.Request(url, data=data, headers=h, method=method)
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            raw = resp.read().decode("utf-8")
+        with safe_urlopen(req, timeout=timeout, max_redirects=0) as resp:
+            raw = read_text_limited(resp, MAX_JSON_BYTES)
     except urllib.error.HTTPError as exc:
-        fail(f"接口 HTTP {exc.code}：{exc.read().decode('utf-8', 'replace')[:500]}")
+        fail(f"接口 HTTP {exc.code}：{read_error_text(exc)}")
     except (urllib.error.URLError, http.client.RemoteDisconnected, TimeoutError) as exc:
         fail(f"接口连接失败：{exc}")
     try:
@@ -228,30 +276,28 @@ def http_multipart(url: str, headers: dict[str, str], fields: dict[str, str],
     h.update(headers)
     req = urllib.request.Request(url, data=bytes(body), headers=h, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode("utf-8"))
+        with safe_urlopen(req, timeout=timeout, max_redirects=0) as resp:
+            return json.loads(read_text_limited(resp, MAX_JSON_BYTES))
     except urllib.error.HTTPError as exc:
-        fail(f"上传 HTTP {exc.code}：{exc.read().decode('utf-8', 'replace')[:500]}")
+        fail(f"上传 HTTP {exc.code}：{read_error_text(exc)}")
     except (urllib.error.URLError, TimeoutError) as exc:
         fail(f"上传连接失败：{exc}")
     return {}
 
 
 def download(url: str, out: Path, timeout: int = 180) -> Path:
-    out.parent.mkdir(parents=True, exist_ok=True)
-    req = urllib.request.Request(url, headers={"User-Agent": UA})
     try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            out.write_bytes(resp.read())
+        download_atomic(
+            url, out, max_bytes=MAX_AUDIO_BYTES, timeout=timeout,
+            label="音频",
+        )
     except (urllib.error.URLError, TimeoutError) as exc:
         fail(f"下载失败：{exc}")
     return out
 
 
 def _save_bytes(b: bytes, out: Path) -> Path:
-    out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_bytes(b)
-    return out
+    return save_bytes_atomic(b, out, max_bytes=MAX_AUDIO_BYTES, label="音频")
 
 
 # ── enroll（登记音色） ──────────────────────────────────────
@@ -378,10 +424,10 @@ def clone_fish(a, out: Path) -> Path:
         headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json",
                  "User-Agent": UA}, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=180) as resp:
-            return _save_bytes(resp.read(), out)  # fish 直接返回音频字节
+        with safe_urlopen(req, timeout=180, max_redirects=0) as resp:
+            return save_response_atomic(resp, out, max_bytes=MAX_AUDIO_BYTES, label="音频")
     except urllib.error.HTTPError as exc:
-        fail(f"fish-audio HTTP {exc.code}：{exc.read().decode('utf-8', 'replace')[:300]}")
+        fail(f"fish-audio HTTP {exc.code}：{read_error_text(exc)}")
     return out
 
 
@@ -412,10 +458,10 @@ def clone_openai(a, out: Path) -> Path:
         headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json",
                  "User-Agent": UA}, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=180) as resp:
-            return _save_bytes(resp.read(), out)
+        with safe_urlopen(req, timeout=180, max_redirects=0) as resp:
+            return save_response_atomic(resp, out, max_bytes=MAX_AUDIO_BYTES, label="音频")
     except urllib.error.HTTPError as exc:
-        fail(f"openai 兼容 HTTP {exc.code}：{exc.read().decode('utf-8', 'replace')[:300]}")
+        fail(f"openai 兼容 HTTP {exc.code}：{read_error_text(exc)}")
     return out
 
 
@@ -432,10 +478,66 @@ def _pcm_to_wav_bytes(pcm: bytes, rate: int = 24000, channels: int = 1, width: i
     return buf.getvalue()
 
 
+def _ffmpeg_convert_atomic(wav_source: Path | bytes, out: Path) -> bool:
+    """Run ffmpeg into an inherited seekable fd, then durably replace ``out``.
+
+    ``pipe:N`` is not seekable and breaks M4A/MP4. FFmpeg's ``fd:`` protocol
+    preserves the regular file descriptor's seek support while exposing no
+    pathname. The descriptor is the run-labelled AtomicOutput partial opened
+    relative to the startup-pinned parent directory.
+    """
+    import subprocess as _sp
+    temporary_suffix = out.suffix if re.fullmatch(r"\.[A-Za-z0-9]{1,16}", out.suffix) else ""
+    atomic = open_atomic_output(out, temporary_suffix=temporary_suffix)
+    try:
+        if secure_output_active():
+            muxers = {
+                ".aac": "adts", ".flac": "flac", ".m4a": "ipod",
+                ".mp3": "mp3", ".mp4": "mp4", ".ogg": "ogg",
+                ".opus": "opus", ".wav": "wav", ".webm": "webm",
+            }
+            muxer = muxers.get(out.suffix.lower())
+            if not muxer:
+                return False
+            output_fd = atomic.fileno()
+            argv = ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error"]
+            run_kwargs: dict[str, Any] = {
+                "capture_output": True,
+                "pass_fds": (output_fd,),
+            }
+            if isinstance(wav_source, bytes):
+                argv += ["-i", "pipe:0"]
+                run_kwargs["input"] = wav_source
+            else:
+                argv += ["-i", str(wav_source)]
+            argv += ["-f", muxer, "-fd", str(output_fd), "fd:"]
+            result = _sp.run(argv, **run_kwargs)
+        else:
+            # Direct unit/internal callers have no CLI-pinned parent. The
+            # atomic commit is still dir_fd based; only managed/CLI execution
+            # uses the descriptor-only ffmpeg sink above.
+            temporary = out.parent / atomic.temporary_name
+            _ACTIVE_FFMPEG_PARTS.add(temporary)
+            os.close(atomic.take_fd())
+            result = _sp.run(
+                ["ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
+                 "-i", str(wav_source), str(temporary)],
+                capture_output=True, text=True,
+            )
+            _ACTIVE_FFMPEG_PARTS.discard(temporary)
+        if result.returncode != 0:
+            return False
+        atomic.commit(max_bytes=MAX_AUDIO_BYTES, require_nonempty=True)
+        return True
+    finally:
+        if "temporary" in locals():
+            _ACTIVE_FFMPEG_PARTS.discard(temporary)
+        atomic.abort()
+
+
 def clone_gemini(a, out: Path) -> Path:
     """Google Gemini TTS（免费层可用）。情感走自然语言前缀；返回 base64 PCM → 包 WAV（→按需 ffmpeg 转码）。
     env：GEMINI_API_KEY；可选 GEMINI_TTS_MODEL / GEMINI_VOICE / GEMINI_BASE_URL / GEMINI_TTS_RATE。"""
-    import base64
     key = require_env("GEMINI_API_KEY")
     base = (os.environ.get("GEMINI_BASE_URL", "").strip()
             or "https://generativelanguage.googleapis.com/v1beta").rstrip("/")
@@ -452,24 +554,16 @@ def clone_gemini(a, out: Path) -> Path:
            or _dig_inline_data(resp) or "")
     if not b64:
         fail(f"Gemini 未返回音频：{json.dumps(resp, ensure_ascii=False)[:300]}")
-    raw = base64.b64decode(b64)
+    raw = bounded_b64decode(b64, max_bytes=MAX_AUDIO_BYTES - 44, label="Gemini 音频")
     wav = _pcm_to_wav_bytes(raw, rate=rate)   # Gemini 返回裸 PCM
     suffix = out.suffix.lstrip(".").lower() or "wav"
     if suffix == "wav":
         return _save_bytes(wav, out)
     # 非 wav（如 mp3）：有 ffmpeg 则转码，否则退回同名 .wav 并告警
     import shutil as _sh
-    import subprocess as _sp
-    import tempfile as _tf
     if _sh.which("ffmpeg"):
-        with _tf.TemporaryDirectory() as td:
-            wp = Path(td) / "g.wav"
-            wp.write_bytes(wav)
-            out.parent.mkdir(parents=True, exist_ok=True)
-            r = _sp.run(["ffmpeg", "-y", "-hide_banner", "-loglevel", "error",
-                         "-i", str(wp), str(out)], capture_output=True, text=True)
-            if r.returncode == 0 and out.is_file():
-                return out
+        if _ffmpeg_convert_atomic(wav, out):
+            return out
     alt = out.with_suffix(".wav")
     print(f"提示：无 ffmpeg 无法转 {suffix}，已输出 WAV：{alt}", file=sys.stderr)
     return _save_bytes(wav, alt)
@@ -521,12 +615,15 @@ def cmd_clone(a) -> int:
     provider = resolve_provider(a.provider)
     if not a.text:
         fail("--text 待合成文案必填。")
-    out = Path(a.output).expanduser().resolve()
+    out = Path(a.output)
     dispatch = {"minimax": clone_minimax, "dashscope": clone_dashscope,
                 "fish-audio": clone_fish, "openai-compatible": clone_openai,
                 "gemini": clone_gemini}
     result = dispatch[provider](a, out)
-    kb = result.stat().st_size / 1024 if result.is_file() else 0
+    try:
+        kb = secure_output_stat(result).st_size / 1024
+    except OSError:
+        kb = 0
     print(f"✅ {result} ({kb:.0f} KB) [{provider}]")
     return 0
 
@@ -626,10 +723,18 @@ def main() -> int:
     if not getattr(a, "func", None):
         ap.print_help()
         return 1
-    if getattr(a, "cmd", None) != "selftest":
-        env_file = Path(a.env_file) if getattr(a, "env_file", None) else find_default_env_file()
-        load_env_file(env_file)
-    return a.func(a)
+    try:
+        if hasattr(a, "output"):
+            a.output = str(activate_secure_output(a.output))
+        if getattr(a, "cmd", None) != "selftest":
+            env_file = Path(a.env_file) if getattr(a, "env_file", None) else find_default_env_file()
+            load_env_file(env_file)
+        return a.func(a)
+    except SecureOutputError as exc:
+        fail(str(exc))
+        return 1
+    finally:
+        close_secure_output()
 
 
 if __name__ == "__main__":

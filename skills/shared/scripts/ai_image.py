@@ -26,7 +26,6 @@ from __future__ import annotations
 
 import argparse
 import base64
-import binascii
 import http.client
 import json
 import os
@@ -37,6 +36,22 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 from typing import Any
+
+from safe_http import (
+    MAX_IMAGE_BYTES,
+    MAX_JSON_BYTES,
+    SecureOutputError,
+    activate_secure_output,
+    bounded_b64decode,
+    close_secure_output,
+    download_atomic,
+    read_error_text,
+    read_text_limited,
+    sanitize_log_text,
+    safe_urlopen,
+    save_bytes_atomic,
+    url_for_log,
+)
 
 
 ENV_BASE_URL = "IMG_BASE_URL"
@@ -88,7 +103,7 @@ MISSING_KEY_HINT = (
 
 
 def fail(message: str, exit_code: int = 1) -> None:
-    print(f"错误：{message}", file=sys.stderr)
+    print(f"错误：{sanitize_log_text(message)}", file=sys.stderr)
     raise SystemExit(exit_code)
 
 
@@ -102,6 +117,10 @@ def strip_env_value(value: str) -> str:
 
 
 def find_default_env_file() -> Path | None:
+    # Host-managed executions inject an allowlisted environment and must not
+    # merge arbitrary workspace .env values into that trusted subprocess.
+    if os.environ.get("DSH_MEDIAOPS_MANAGED_MODEL_CONFIG") == "1":
+        return None
     for directory in (Path.cwd(), *Path.cwd().parents):
         env_file = directory / ".env"
         if env_file.is_file():
@@ -212,17 +231,14 @@ def encode_image_data_uri(image_path: str) -> str:
 
 # ── HTTP 工具 ──────────────────────────────────────────────
 
-# 内网直连 opener（绕过环境代理）——外网代理常挡内网 MaaS
-_NO_PROXY_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-
-
 def _use_direct() -> bool:
     return os.environ.get("IMG_NO_PROXY", "").strip().lower() in ("1", "true", "yes", "on")
 
 
 def _open(req: urllib.request.Request, timeout: int):
-    fn = _NO_PROXY_OPENER.open if _use_direct() else urllib.request.urlopen
-    return fn(req, timeout=timeout)
+    # Authenticated API calls never follow redirects: forwarding provider
+    # headers across an origin boundary would leak the API key.
+    return safe_urlopen(req, timeout=timeout, direct=_use_direct(), max_redirects=0)
 
 
 def _auth_header(api_key: str) -> dict[str, str]:
@@ -252,9 +268,9 @@ def http_post(url: str, api_key: str, payload: dict[str, Any], timeout: int = 12
     )
     try:
         with _open(request, timeout) as response:
-            raw = response.read().decode("utf-8")
+            raw = read_text_limited(response, MAX_JSON_BYTES)
     except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
+        detail = read_error_text(exc)
         fail(f"接口返回 HTTP {exc.code}：{detail}")
     except urllib.error.URLError as exc:
         fail(f"无法连接接口：{exc.reason}")
@@ -276,9 +292,9 @@ def http_get(url: str, api_key: str, timeout: int = 30) -> dict[str, Any]:
     )
     try:
         with _open(request, timeout) as response:
-            raw = response.read().decode("utf-8")
+            raw = read_text_limited(response, MAX_JSON_BYTES)
     except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
+        detail = read_error_text(exc)
         fail(f"查询接口返回 HTTP {exc.code}：{detail}")
     except (urllib.error.URLError, http.client.RemoteDisconnected, TimeoutError):
         fail("查询接口连接失败或超时。")
@@ -301,13 +317,11 @@ def _suffix_from_url(url: str, fallback: str) -> str:
 
 
 def _download_to(image_url: str, out_path: Path) -> None:
-    parsed = urllib.parse.urlparse(image_url)
-    if parsed.scheme not in ("http", "https"):
-        fail(f"拒绝下载非 http(s) 协议的 URL：{parsed.scheme}")
-    dl_req = urllib.request.Request(image_url, headers={"User-Agent": UA})
     try:
-        with _open(dl_req, 120) as resp:
-            out_path.write_bytes(resp.read())
+        download_atomic(
+            image_url, out_path, max_bytes=MAX_IMAGE_BYTES,
+            timeout=120, label="图片", direct=_use_direct(),
+        )
     except urllib.error.URLError as exc:
         fail(f"无法下载图片：{getattr(exc, 'reason', exc)}")
     except TimeoutError:
@@ -324,11 +338,9 @@ def _out_paths(output: str, count: int, fmt: str) -> list[Path]:
     ts = time.strftime("%Y%m%d-%H%M%S")
     paths: list[Path] = []
     if count == 1 and is_file:
-        out.parent.mkdir(parents=True, exist_ok=True)
         return [out]
     # 目录模式（或多张）
     base_dir = out if not is_file else out.parent
-    base_dir.mkdir(parents=True, exist_ok=True)
     stem = out.stem if is_file else "image"
     ext = out.suffix.lstrip(".") if is_file else fmt
     for i in range(count):
@@ -348,11 +360,13 @@ def save_sync_data(result: dict[str, Any], output: str, fmt: str) -> list[Path]:
         target = paths[index]
         if item.get("b64_json"):
             try:
-                image_bytes = base64.b64decode(item["b64_json"])
-            except (binascii.Error, ValueError) as exc:
+                image_bytes = bounded_b64decode(
+                    item["b64_json"], max_bytes=MAX_IMAGE_BYTES, label="图片",
+                )
+            except (urllib.error.URLError, ValueError) as exc:
                 fail(f"无法解码 b64_json 图片：{exc}")
                 return []
-            target.write_bytes(image_bytes)
+            save_bytes_atomic(image_bytes, target, max_bytes=MAX_IMAGE_BYTES, label="图片")
         elif item.get("url"):
             image_url = item["url"]
             # 用 URL 后缀修正扩展名
@@ -370,7 +384,7 @@ def save_sync_data(result: dict[str, Any], output: str, fmt: str) -> list[Path]:
 def run_async(base_url: str, api_key: str, payload: dict[str, Any],
               output: str, fmt: str, poll_interval: int, timeout: int) -> list[Path]:
     endpoint = _api_url(base_url, "images/generations")
-    print(f"[async] 提交异步任务到 {endpoint}...", file=sys.stderr)
+    print(f"[async] 提交异步任务到 {url_for_log(endpoint)}...", file=sys.stderr)
     result = http_post(endpoint, api_key, payload, timeout=30)
 
     code = result.get("code")
@@ -431,7 +445,7 @@ def _save_async_images(task_data: dict[str, Any], output: str, fmt: str) -> list
         suffix = _suffix_from_url(image_url, fmt)
         target = paths[index].with_suffix(f".{suffix}")
         paths[index] = target
-        print(f"  下载图片: {image_url}", file=sys.stderr)
+        print(f"  下载图片: {url_for_log(image_url)}", file=sys.stderr)
         _download_to(image_url, target)
     return paths
 
@@ -444,7 +458,7 @@ def cmd_text2img(args: argparse.Namespace) -> None:
         fail("prompt 不能为空。")
     base_url, model, api_key, _ = load_and_require()
     mode = detect_mode(base_url, args.mode)
-    print(f"[text2img] 模式={mode} base_url={base_url} model={model}", file=sys.stderr)
+    print(f"[text2img] 模式={mode} base_url={url_for_log(base_url)} model={model}", file=sys.stderr)
 
     if mode == "async":
         payload: dict[str, Any] = {
@@ -458,7 +472,7 @@ def cmd_text2img(args: argparse.Namespace) -> None:
         if args.quality:
             payload["quality"] = args.quality
         endpoint = _api_url(base_url, "images/generations")
-        print(f"[sync] 提交生成请求到 {endpoint}...", file=sys.stderr)
+        print(f"[sync] 提交生成请求到 {url_for_log(endpoint)}...", file=sys.stderr)
         result = http_post(endpoint, api_key, payload, timeout=180)
         paths = save_sync_data(result, args.output, args.format)
 
@@ -473,7 +487,7 @@ def cmd_img2img(args: argparse.Namespace) -> None:
         fail("prompt 不能为空。")
     base_url, model, api_key, _ = load_and_require()
     mode = detect_mode(base_url, args.mode)
-    print(f"[img2img] 模式={mode} base_url={base_url} model={model} image={args.image}",
+    print(f"[img2img] 模式={mode} base_url={url_for_log(base_url)} model={model} image={Path(args.image).name}",
           file=sys.stderr)
 
     if mode == "async":
@@ -512,7 +526,7 @@ def _post_edits_multipart(base_url: str, api_key: str, model: str,
             fail(f"无法读取 mask 图片：{exc}")
     body, content_type = _encode_multipart(fields, files)
     endpoint = _api_url(base_url, "images/edits")
-    print(f"[sync] 提交图生图请求到 {endpoint}（multipart）...", file=sys.stderr)
+    print(f"[sync] 提交图生图请求到 {url_for_log(endpoint)}（multipart）...", file=sys.stderr)
     request = urllib.request.Request(
         endpoint, data=body,
         headers={**_auth_header(api_key),
@@ -521,9 +535,9 @@ def _post_edits_multipart(base_url: str, api_key: str, model: str,
     )
     try:
         with _open(request, 180) as response:
-            raw = response.read().decode("utf-8")
+            raw = read_text_limited(response, MAX_JSON_BYTES)
     except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
+        detail = read_error_text(exc)
         fail(f"图生图接口返回 HTTP {exc.code}：{detail}")
     except urllib.error.URLError as exc:
         fail(f"无法连接图生图接口：{exc.reason}")
@@ -563,7 +577,7 @@ def _encode_multipart(fields: dict[str, str],
 def cmd_variations(args: argparse.Namespace) -> None:
     base_url, model, api_key, _ = load_and_require()
     mode = detect_mode(base_url, args.mode)
-    print(f"[variations] 模式={mode} base_url={base_url} model={model} image={args.image}",
+    print(f"[variations] 模式={mode} base_url={url_for_log(base_url)} model={model} image={Path(args.image).name}",
           file=sys.stderr)
 
     if mode == "async":
@@ -586,7 +600,7 @@ def cmd_variations(args: argparse.Namespace) -> None:
         fields = {"model": model, "n": str(args.n), "size": args.size}
         body, content_type = _encode_multipart(fields, [("image", path.name, mime, img_bytes)])
         endpoint = _api_url(base_url, "images/variations")
-        print(f"[sync] 提交变体请求到 {endpoint}（multipart）...", file=sys.stderr)
+        print(f"[sync] 提交变体请求到 {url_for_log(endpoint)}（multipart）...", file=sys.stderr)
         request = urllib.request.Request(
             endpoint, data=body,
             headers={**_auth_header(api_key),
@@ -595,9 +609,9 @@ def cmd_variations(args: argparse.Namespace) -> None:
         )
         try:
             with _open(request, 180) as response:
-                raw = response.read().decode("utf-8")
+                raw = read_text_limited(response, MAX_JSON_BYTES)
         except urllib.error.HTTPError as exc:
-            detail = exc.read().decode("utf-8", errors="replace")
+            detail = read_error_text(exc)
             fail(f"变体接口返回 HTTP {exc.code}：{detail}")
         except urllib.error.URLError as exc:
             fail(f"无法连接变体接口：{exc.reason}")
@@ -718,9 +732,20 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> None:
     args = parse_args(argv)
-    env_file = Path(args.env_file) if getattr(args, "env_file", None) else find_default_env_file()
-    load_env_file(env_file)
-    args.func(args)
+    try:
+        if hasattr(args, "output"):
+            output_is_directory = not bool(Path(args.output).suffix)
+            args.output = str(activate_secure_output(
+                args.output,
+                output_is_directory=output_is_directory,
+            ))
+        env_file = Path(args.env_file) if getattr(args, "env_file", None) else find_default_env_file()
+        load_env_file(env_file)
+        args.func(args)
+    except SecureOutputError as exc:
+        fail(str(exc))
+    finally:
+        close_secure_output()
 
 
 if __name__ == "__main__":

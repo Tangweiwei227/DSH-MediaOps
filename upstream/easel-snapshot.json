@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/ZJU-REAL/Easel.git",
+  "branch": "main",
+  "snapshotCommit": "660dfd2b75d10bea48f57be22d8da694f88851b8",
+  "trees": {
+    "skills/openclaw": "22eb32a1547fb5e6d8f9d1e38a954d6faf1d6ca3",
+    "skills/shared": "f3757b52951f1d47783745d808cd600fbaca0849"
+  },
+  "curatedDigest": {
+    "algorithm": "sha256-dsh-mediaops-curated-v1",
+    "digest": "sha256:c51b1b107a5871c2903521990c274e0daee453b4e963a4f63c3579a7a5cd199f",
+    "fileCount": 598,
+    "totalBytes": 6407498
+  },
+  "expectedSkillCount": 112,
+  "minimumSkillModificationNotices": 21,
+  "hostOnlySkills": [
+    "skill-bilibili-upload",
+    "skill-channels-upload",
+    "skill-cross-platform-publish",
+    "skill-douyin-upload",
+    "skill-kuaishou-upload",
+    "skill-publish-notify",
+    "skill-publish-scheduler",
+    "skill-short-link",
+    "skill-wechat-publisher",
+    "skill-xhs-comment-reply",
+    "skill-xhs-publisher",
+    "skill-zhihu-answer",
+    "skill-zhihu-publisher"
+  ]
+}

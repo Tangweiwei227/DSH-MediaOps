@@ -4,6 +4,8 @@ import { MEDIA_PLATFORMS, type DraftStatus, type MediaPlatform, type TopicStatus
 import { TREND_PLATFORMS, type TrendPlatform, TrendService } from './trends.ts'
 import { MediaOpsService } from './service.ts'
 import { PublisherAdapter } from './adapter.ts'
+import { MODEL_SCRIPT_IDS, ModelScriptRunner, type ModelScriptId } from './model-runner.ts'
+import type { ModelConfigStore } from './model-config.ts'
 
 function renderJson(_args: unknown, value: unknown): ContentBlock[] {
   return [{ type: 'text', text: JSON.stringify(value, null, 2) }]
@@ -19,7 +21,13 @@ function keepDefined<T extends object>(input: T): Partial<T> {
   return Object.fromEntries(Object.entries(input).filter(([, value]) => value !== undefined)) as Partial<T>
 }
 
-export function mediaOpsTools(service: MediaOpsService, trends: TrendService, adapter: PublisherAdapter) {
+export function mediaOpsTools(
+  service: MediaOpsService,
+  trends: TrendService,
+  adapter: PublisherAdapter,
+  modelConfig?: ModelConfigStore,
+  modelRunner?: ModelScriptRunner,
+) {
   return [
     defineTool({
       name: 'mediaops_capabilities',
@@ -28,6 +36,32 @@ export function mediaOpsTools(service: MediaOpsService, trends: TrendService, ad
       output: jsonOutput,
       async execute() {
         return jsonValue(await service.overview())
+      },
+    }),
+    defineTool({
+      name: 'mediaops_model_status',
+      description: '查看图像、视频、音乐和语音模型 provider 的脱敏配置状态。只返回模型名、非敏感端点、是否已配置密钥和缺失项，永不返回密钥。Triggers: 模型配置, 生图配置, 视频模型状态, 语音模型状态。',
+      parameters: {},
+      output: jsonOutput,
+      async execute() {
+        if (!modelConfig) throw new Error('当前 Host 未启用多模态模型配置服务')
+        return jsonValue(await modelConfig.view())
+      },
+    }),
+    defineTool({
+      name: 'mediaops_run_model_script',
+      description: '使用 Host 安全保存的凭证运行 DSH-MediaOps 受控多模态脚本。仅允许预定义的生图、视频、音乐和语音脚本及 argv；路径限制在当前 workspace，密钥不会进入参数、日志或结果。该调用可能访问付费 API，必须获得 DSH 原生审批。Triggers: 生成图片, 生成视频, 生成音乐, 云端配音。',
+      parameters: {
+        script: { type: 'string', enum: MODEL_SCRIPT_IDS, required: true, description: '受控脚本：ai-image / ai-video / ai-music / voice-clone' },
+        argv: { type: 'array', items: { type: 'string' }, required: true, description: '脚本子命令和参数；不得包含 Python 路径、API Key、--env-file 或 shell 语法' },
+      },
+      output: jsonOutput,
+      timeoutMs: 31 * 60_000,
+      async execute(args, exec) {
+        if (!modelRunner) throw new Error('当前 Host 未启用多模态模型运行服务')
+        const workspaceRoot = exec.agent?.session.header.cwd
+        if (!workspaceRoot) throw new Error('多模态模型运行必须在有绝对 workspace 的 DSH 会话中进行')
+        return jsonValue(await modelRunner.runApproved(exec, args.script as ModelScriptId, args.argv, workspaceRoot, exec.signal))
       },
     }),
     defineTool({

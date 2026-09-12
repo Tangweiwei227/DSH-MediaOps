@@ -13,7 +13,7 @@ DSH Client
               ▼
 DSH Host
   ├─ 参数化 Agent tools + system prompt
-  ├─ 三处 tools/pre-execute 原生审批
+  ├─ 发布三类动作 + 模型运行的 tools/pre-execute 原生审批
   ├─ MediaOpsService + schema v5 state machine
   ├─ PublisherAdapter（账号探针、dry-run、无 shell 执行）
   ├─ TrendService（第三方热榜、缓存、归一化）
@@ -37,11 +37,12 @@ DSH Host
 5. Agent system prompt；
 6. 每五分钟运行一次的 staging janitor。
 
-审批 hook 对三类动作返回 `ask`：
+审批 hook 对以下动作返回 `ask`：
 
 - `mediaops_confirm_publish(confirm=true)`：签发一次性发布授权，但不触网；
 - `mediaops_execute_publish`：运行真实平台 adapter；
 - `mediaops_record_publish_result`：在中断或平台已接受后人工对账回填。
+- `mediaops_run_model_script`：在可能计费或上传输入前展示 Provider、实际模型、规格与输入摘要，并把批准一次性绑定到同一个 exec。
 
 审批说明从 Host 中的冻结记录生成，包含平台、账号标签与身份指纹、workspace、标题、正文字符数/哈希/预览、素材的安全工作区相对路径（越界时仅 basename）/大小/哈希、定时、平台参数和 `payloadDigest`。所有展示字段会移除控制符与双向文本控制字符并限长，末尾固定重复动作与 `payloadDigest`；模型不能用自报说明替换这些字段。下游策略拒绝时保持拒绝；否则必须得到本次 DSH 原生一次性批准，拒绝、超时或当前表层无法完成审批时不会静默放行。
 
@@ -96,6 +97,7 @@ Client 通过 `/api/dsh-mediaops` 访问 Host。HTTP 边界：
 - JSON 请求体上限 1 MiB；
 - 响应使用 JSON、`Cache-Control: no-store` 和 `X-Content-Type-Options: nosniff`；
 - API 不暴露确认令牌摘要、执行租约 ID、完整正文或冻结文件路径。
+- 多模态模型接口只返回 schema、非秘密值和每个秘密字段的 `configured` 布尔值；API Key 没有读取接口。
 
 发布列表使用最小化的 `PublicationView`，只包含安全展示所需的状态、平台、标题、账号标签、正文摘要与哈希、素材数量、冻结载荷摘要和结果；账号身份指纹、workspace、素材来源、平台私有参数、幂等键与冻结文件路径不会经本地 API 暴露。
 
@@ -121,6 +123,18 @@ Client 只负责交互和展示，不持有权威状态，也不直接访问状�
 ### 工作台
 
 同一 `MediaOpsWorkbench` 挂载到 `conversation.view` 和 `settings.section`，展示概览、选题、爆款、草稿和发布队列；复杂研究、创作和真实发布仍走对话工具。
+
+独立的 `ModelSettings` 挂载到第二个 `settings.section`。它通过 same-origin API 编辑图像、视频、音乐和云端语音四类模型 Provider；密码输入只用于本次 replace 请求，保存成功即从组件状态清除，Host 响应不会回显秘密。每次运行只使用该类别明确选中的默认 Provider，不做自动故障转移；当前没有受管 ASR/语音转写模型组。
+
+### 多模态模型 Host 边界
+
+`ModelConfigStore` 把多模态配置放在 data root 的独立 `secrets/multimodal-models.json`，而不是业务 `state.json`。秘密文件以 `0600` 原子提交，父目录为 `0700`；读取和写入拒绝符号链接。浏览器更新协议要求秘密逐字段显式 `keep` / `replace` / `clear`。
+
+`ModelScriptRunner` 是 bundled media skills 使用凭证的唯一受控入口：脚本、子命令、flag 和子进程 env 都是 allowlist；输入受 workspace realpath 约束，输出根用 `lstat + realpath` 证明是当前 workspace 的真实 `outputs/` 目录；运行期间禁止脚本自动加载 workspace `.env`。费用审批通过 `WeakMap` 与同一个 DSH exec 对象绑定并一次性消费；执行前重新计算参数、Provider、模型、endpoint、私网策略、环境和 executable 指纹，本地输入复制到 `0700` staging 后按批准的大小/SHA-256 复核，脚本只读取 `0400` snapshot。Host 还把 workspace 与 `outputs/` 的 device/inode 身份和唯一 run ID 注入子进程，并在 spawn 前持久化非秘密 v2 pending 记录。真实生成使用 `shell: false`，输出在回到模型前按实际 secret 和通用凭证字段双重脱敏。
+
+受控模型 HTTP 不继承环境代理。公网 HTTP 始终拒绝；只有显式启用私网访问且全部解析结果属于 loopback、RFC1918 或 IPv6 ULA 时，私网 HTTP 才能使用。每个请求只使用一次 DNS 解析得到的已验证 IP 快照建立连接，同时保留原 hostname 的 Host、HTTPS SNI 与证书校验；redirect 对新目标重新解析并固定。Provider 级私网开关只授权其 API endpoint，不授权供应商返回的媒体地址；媒体下载始终要求公网 HTTPS 目标，metadata、链路本地和其他保留地址始终拒绝。
+
+四个受管 CLI 都在任何 Provider 请求前，以 `O_NOFOLLOW` 和逐级 `dir_fd` 打开 Host 批准的 workspace/`outputs/`，核对注入的 device/inode，并在整个请求、轮询和下载期间持有最终父目录描述符。run-labelled partial 的创建、inode 复核、`fsync`、原子替换和删除都相对这个描述符完成；受管语音转码把 FFmpeg 指向预先打开、可 seek 的普通文件描述符。普通异常与 SIGTERM 由 Python 清理；模型子进程被 SIGKILL、Host 与已批准目录身份保持正常时，Host `finally` 按 run ID 精确回收。Host 本身崩溃后，janitor 只在可信 v2 pending 记录明确证明 owner 已死亡且两个目录 inode 仍匹配时恢复；活跃或身份未知的 owner 不会被清理，v1/截断/畸形记录也保守保留。该策略优先避免跨 Host 误删，因此不承诺清除无法安全归属的残留。
 
 ## Bundled skills
 
@@ -168,6 +182,31 @@ data root 包含 schema v5 `state.json`、`staging/`、`preflight/`、`wechat-pu
 | `Publication` | 草稿 revision、平台、快照、digest、账号身份、租约 | `preview / confirmed / publishing / submitted / draft_created / scheduled / published / failed / cancelled` |
 
 Store 每次读取都校验深层结构、状态、ID 唯一性和 snapshot digest。mutation 先取得跨 Host 文件锁、重新读取最新文件、在副本上校验，再通过唯一临时文件、fsync 与 rename 提交；状态文件上限 16 MiB。它仍是单机 JSON store，不是多用户数据库，也没有字段级加密或云同步。
+
+### 检索索引与 store 迁移预案
+
+当前线性扫描适合小型个人库，但仅增加内存倒排索引不能解决 `state.json` 每次读取仍需完整读取、解析和深层校验的问题。以下任一条件持续出现时启动迁移评审：任一集合超过 2,000 条、文件超过 8 MiB、搜索/列表 p95 超过 100 ms，或一次 mutation p95 超过 250 ms。阈值是运维信号，不会在后台静默切换存储。
+
+迁移前先在 service 与持久化之间收敛 `MediaOpsRepository` seam，包含事务 mutation、按 ID 读取、分页列表、资料库搜索和发布幂等查询；业务层不感知 JSON/SQLite。短期可按 state 文件的 mtime/size/generation 建只读内存索引来减少重复扫描，但文件变化时必须整体失效，并明确它不是长期容量方案。
+
+首选持久层为 data root 内单机 SQLite（WAL），建议索引：
+
+- topic：`status, updatedAt`，标题/角度/摘要的 FTS；
+- viral：`platform, lastSeenAt`，规范化 URL 唯一键，标题/摘要的 FTS；
+- draft：`status, updatedAt`、`topicId`；
+- publication：`platform, status, createdAt`、全局唯一 `idempotencyKey`，以及 `draftId, draftRevision`。
+
+正文、冻结路径、账号身份和发布私有参数不进入不必要的 FTS 或日志；数据库、WAL 和备份继续位于 `0700` data root，文件尽力保持 `0600`。
+
+建议 schema v6 迁移步骤：
+
+1. 取得现有跨 Host store 锁，停止新 mutation；完整校验 v5，并创建带时间戳与 SHA-256 的只读 `state.v5.backup.json`，fsync 文件和目录。
+2. 在临时 SQLite 文件的单一事务中导入四类实体，保留所有 ID、时间、revision、snapshot digest、已接受/终态以及未完成发布租约；不把不确定发布重置成可重试。
+3. 对照实体数量、ID 集、关系、状态分布和每个 publication payload digest；在新 repository 上重跑 schema/invariant 校验与代表性查询。
+4. 先 fsync 数据库与 WAL，再用 data-root 内原子 marker/config rename 切换 repository；禁止跨文件系统 rename，也不做容易分叉的长期双写。
+5. 切换后保留 v5 备份且不自动删除。首次 v6 写入前可直接回滚 marker；已有 v6 写入后只能用经过校验的反向导出或停机恢复备份，并明确丢失窗口。
+
+任何迁移失败都应在切换前终止并保留原 `state.json` 为唯一权威源。迁移工具必须支持 `--dry-run`、生成校验报告，并在故障注入测试中覆盖崩溃、磁盘不足、重复运行和回滚。
 
 v1-v4 状态会迁移到 v5。`published`、`failed`、`cancelled` 以及已接受的 `submitted`、`draft_created`、`scheduled` 保留；旧 `preview`、`confirmed`、`publishing` 因缺少完整可信冻结信息而变为 `cancelled`，旧令牌和执行租约被清空。
 

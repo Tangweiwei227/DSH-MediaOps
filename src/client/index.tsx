@@ -7,6 +7,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import { MediaOpsWorkbench } from './MediaOpsWorkbench.tsx'
 import { createActionSource, createMentionSource } from './triggers.ts'
+import { ModelSettings } from './ModelSettings.tsx'
 
 /** Client services required before this plugin may mount. */
 export const inject = ['slots', 'inputTriggers']
@@ -41,5 +42,15 @@ export function apply(ctx: ClientContext): void {
       label: 'MediaOps',
     },
     () => createElement(MediaOpsWorkbench, { compact: true }),
+  ))
+
+  ctx.slots.inject('settings.section', () => ctx.slots.register(
+    {
+      name: 'settings.section',
+      id: 'mediaops-models',
+      order: 36,
+      label: '多模态模型',
+    },
+    () => createElement(ModelSettings),
   ))
 }

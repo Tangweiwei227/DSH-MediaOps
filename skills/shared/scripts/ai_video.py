@@ -45,6 +45,20 @@ from pathlib import Path
 from typing import Any
 
 from model_registry import env_aliases, provider_ids, provider_required_env
+from safe_http import (
+    MAX_JSON_BYTES,
+    MAX_VIDEO_BYTES,
+    SecureOutputError,
+    activate_secure_output,
+    close_secure_output,
+    download_atomic,
+    read_error_text,
+    read_text_limited,
+    sanitize_log_text,
+    safe_urlopen,
+    save_bytes_atomic,
+    url_for_log,
+)
 
 UA = "Easel-ai-video/0.1"
 
@@ -59,16 +73,13 @@ DEFAULT_AGNES_BASE = "https://apihub.agnes-ai.com/v1"
 DEFAULT_AGNES_POLL_BASE = "https://apihub.agnes-ai.com/agnesapi"
 DEFAULT_AGNES_MODEL = "agnes-video-2.5-flash"
 
-# 内网/OSS 直连 opener（绕过环境代理）——外网代理常挡内网 MaaS 与 aliyuncs OSS
-_NO_PROXY_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-
 ENV_ALIASES = env_aliases("video")
 
 
 # ── 基础工具 ──────────────────────────────────────────────
 
 def fail(message: str, exit_code: int = 1) -> "None":
-    print(f"错误：{message}", file=sys.stderr)
+    print(f"错误：{sanitize_log_text(message)}", file=sys.stderr)
     sys.exit(exit_code)
 
 
@@ -80,6 +91,8 @@ def strip_env_value(value: str) -> str:
 
 
 def find_default_env_file() -> Path | None:
+    if os.environ.get("DSH_MEDIAOPS_MANAGED_MODEL_CONFIG") == "1":
+        return None
     for directory in [Path.cwd(), *Path.cwd().parents]:
         env_file = directory / ".env"
         if env_file.is_file():
@@ -174,15 +187,11 @@ def _save_probe_cache(provider: str, model: str | None, entry: dict) -> None:
     """把某 provider:model 的探针结论并入缓存（原子写）。"""
     cache = _load_probe_cache()
     cache[f"{provider}:{model or ''}"] = entry
-    tmp = PROBE_CACHE_PATH.with_suffix(".json.tmp")
     try:
-        tmp.write_text(json.dumps(cache, ensure_ascii=False, indent=2), encoding="utf-8")
-        os.replace(tmp, PROBE_CACHE_PATH)
-    except OSError:
-        try:
-            tmp.unlink()
-        except OSError:
-            pass
+        encoded = json.dumps(cache, ensure_ascii=False, indent=2).encode("utf-8")
+        save_bytes_atomic(encoded, PROBE_CACHE_PATH, max_bytes=MAX_JSON_BYTES, label="探针缓存")
+    except (OSError, SecureOutputError):
+        pass
 
 
 def provider_capabilities(provider: str, model: str | None = None) -> dict[str, Any]:
@@ -283,6 +292,7 @@ def resolve_model(provider: str, explicit: str | None = None, *, image: bool = F
     env_names = {
         "dashscope": ("DASHSCOPE_VIDEO_MODEL",),
         "ark": ("ARK_MODEL",),
+        "kling": ("KLING_MODEL",),
         "openai-compatible": ("VIDEO_MODEL",),
         "xhs-maas": (("XHS_MAAS_I2V_MODEL",) if image else ("XHS_MAAS_T2V_MODEL",)),
         "agnes": ("AGNES_MODEL",),
@@ -294,6 +304,7 @@ def resolve_model(provider: str, explicit: str | None = None, *, image: bool = F
     defaults = {
         "dashscope": DEFAULT_DASHSCOPE_MODEL,
         "ark": DEFAULT_ARK_MODEL,
+        "kling": "kling-v1",
         "openai-compatible": "sora-1",
         "xhs-maas": "happyhorse-1.0-i2v" if image else "happyhorse-1.0-t2v",
         "agnes": DEFAULT_AGNES_MODEL,
@@ -313,13 +324,13 @@ def http_request(url: str, headers: dict[str, str], method: str = "GET",
         data = json.dumps(payload).encode("utf-8")
         base_headers.setdefault("Content-Type", "application/json")
     req = urllib.request.Request(url, data=data, headers=base_headers, method=method)
-    open_fn = _NO_PROXY_OPENER.open if direct else urllib.request.urlopen
     try:
-        with open_fn(req, timeout=timeout) as resp:
-            raw = resp.read().decode("utf-8")
+        # Authenticated create/poll calls never redirect, so provider headers
+        # cannot be forwarded to a different origin.
+        with safe_urlopen(req, timeout=timeout, direct=direct, max_redirects=0) as resp:
+            raw = read_text_limited(resp, MAX_JSON_BYTES)
     except urllib.error.HTTPError as exc:
-        detail = exc.read().decode("utf-8", errors="replace")
-        fail(f"接口返回 HTTP {exc.code}：{detail[:500]}")
+        fail(f"接口返回 HTTP {exc.code}：{read_error_text(exc)}")
     except urllib.error.URLError as exc:
         fail(f"无法连接接口：{exc.reason}")
     except (http.client.RemoteDisconnected, TimeoutError):
@@ -334,16 +345,15 @@ def http_request(url: str, headers: dict[str, str], method: str = "GET",
 
 
 def download_video(url: str, output: Path, timeout: int = 300, direct: bool = False) -> Path:
-    output.parent.mkdir(parents=True, exist_ok=True)
     if not output.suffix:
         suffix = Path(urllib.parse.urlparse(url).path).suffix or ".mp4"
         output = output.with_suffix(suffix)
-    print(f"  下载视频：{url}", file=sys.stderr)
-    req = urllib.request.Request(url, headers={"User-Agent": UA})
-    open_fn = _NO_PROXY_OPENER.open if direct else urllib.request.urlopen
+    print(f"  下载视频：{url_for_log(url)}", file=sys.stderr)
     try:
-        with open_fn(req, timeout=timeout) as resp:
-            output.write_bytes(resp.read())
+        download_atomic(
+            url, output, max_bytes=MAX_VIDEO_BYTES, timeout=timeout,
+            label="视频", direct=direct,
+        )
     except urllib.error.URLError as exc:
         fail(f"无法下载视频：{exc.reason}")
     except TimeoutError:
@@ -427,7 +437,7 @@ def generate_dashscope(args: argparse.Namespace, image: str | None) -> Path:
     payload = {"model": model, "input": input_block, "parameters": params}
     _put_audio(payload, params, args, "dashscope", model)
     headers = {"Authorization": f"Bearer {api_key}", "X-DashScope-Async": "enable"}
-    print(f"[dashscope] 提交任务 {endpoint}（model={model}）...", file=sys.stderr)
+    print(f"[dashscope] 提交任务 {url_for_log(endpoint)}（model={model}）...", file=sys.stderr)
     result = http_request(endpoint, headers, method="POST", payload=payload)
     task_id = (result.get("output") or {}).get("task_id")
     if not task_id:
@@ -457,7 +467,7 @@ def generate_ark(args: argparse.Namespace, image: str | None) -> Path:
     _put_audio(payload, None, args, "ark", model)
     headers = {"Authorization": f"Bearer {api_key}"}
     endpoint = f"{base}/contents/generations/tasks"
-    print(f"[ark] 提交任务 {endpoint}（model={model}）...", file=sys.stderr)
+    print(f"[ark] 提交任务 {url_for_log(endpoint)}（model={model}）...", file=sys.stderr)
     result = http_request(endpoint, headers, method="POST", payload=payload)
     task_id = result.get("id") or (result.get("data") or {}).get("id")
     if not task_id:
@@ -495,14 +505,14 @@ def generate_kling(args: argparse.Namespace, image: str | None) -> Path:
     else:
         endpoint = f"{base}/v1/videos/text2video"
         payload = {"prompt": args.prompt}
-    if args.model:
-        payload["model_name"] = args.model
+    model = resolve_model("kling", args.model, image=image is not None)
+    payload["model_name"] = model
     if args.duration:
         payload["duration"] = str(args.duration)
     if args.ratio:
         payload["aspect_ratio"] = args.ratio
-    _put_audio(payload, None, args, "kling", args.model)
-    print(f"[kling] 提交任务 {endpoint} ...", file=sys.stderr)
+    _put_audio(payload, None, args, "kling", model)
+    print(f"[kling] 提交任务 {url_for_log(endpoint)} ...", file=sys.stderr)
     result = http_request(endpoint, headers, method="POST", payload=payload)
     data = result.get("data") or {}
     task_id = data.get("task_id") or result.get("task_id")
@@ -534,7 +544,7 @@ def generate_openai_compatible(args: argparse.Namespace, image: str | None) -> P
     _put_audio(payload, None, args, "openai-compatible", model)
     headers = {"Authorization": f"Bearer {api_key}"}
     endpoint = f"{base}/videos"
-    print(f"[openai-compatible] 提交任务 {endpoint}（model={model}）...", file=sys.stderr)
+    print(f"[openai-compatible] 提交任务 {url_for_log(endpoint)}（model={model}）...", file=sys.stderr)
     result = http_request(endpoint, headers, method="POST", payload=payload)
     # 同步返回 URL 则直接下载；否则轮询 /videos/{id}
     url = _find_video_url(result)
@@ -578,7 +588,7 @@ def generate_xhs_maas(args: argparse.Namespace, image: str | None) -> Path:
     _put_audio(payload, params, args, "xhs-maas", model)
     headers = {"api-key": api_key}
     endpoint = f"{base}/services/aigc/video-generation/video-synthesis"
-    print(f"[xhs-maas] 提交任务 {endpoint}（model={model}）...", file=sys.stderr)
+    print(f"[xhs-maas] 提交任务 {url_for_log(endpoint)}（model={model}）...", file=sys.stderr)
     result = http_request(endpoint, headers, method="POST", payload=payload, direct=True)
     task_id = (result.get("output") or {}).get("task_id")
     if not task_id:
@@ -619,7 +629,7 @@ def generate_agnes(args: argparse.Namespace, image: str | None) -> Path:
     _put_audio(payload, None, args, "agnes", model)
     headers = {"Authorization": f"Bearer {api_key}"}
     endpoint = f"{base}/videos"
-    print(f"[agnes] 提交任务 {endpoint}（model={model}）...", file=sys.stderr)
+    print(f"[agnes] 提交任务 {url_for_log(endpoint)}（model={model}）...", file=sys.stderr)
     result = http_request(endpoint, headers, method="POST", payload=payload)
     vid = result.get("video_id") or result.get("id") or result.get("task_id")
     if not vid:
@@ -804,7 +814,6 @@ def _add_common(p: argparse.ArgumentParser, need_prompt: bool) -> None:
 
 
 def main() -> int:
-    load_env_file(find_default_env_file())
     ap = argparse.ArgumentParser(description="AI 视频生成（文/图生视频，多 provider）")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
@@ -843,7 +852,16 @@ def main() -> int:
     p5.set_defaults(func=cmd_probe_dialogue)
 
     args = ap.parse_args()
-    return args.func(args)
+    try:
+        if hasattr(args, "output"):
+            args.output = str(activate_secure_output(args.output))
+        load_env_file(find_default_env_file())
+        return args.func(args)
+    except SecureOutputError as exc:
+        fail(str(exc))
+        return 1
+    finally:
+        close_secure_output()
 
 
 if __name__ == "__main__":

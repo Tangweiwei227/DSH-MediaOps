@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties, FormEvent, ReactNode } from 'react'
-import { createTopic, fetchWorkbench, promoteViral } from './api.ts'
+import { createTopic, fetchReferences, fetchWorkbench, promoteViral } from './api.ts'
 import type {
   DraftItem,
+  LibraryReference,
   PublicationItem,
+  ReferenceItem,
   TopicItem,
   ViralItem,
   WorkbenchSnapshot,
@@ -96,6 +98,13 @@ const TABS: readonly { id: TabId; label: string }[] = [
   { id: 'publications', label: '发布队列' },
 ]
 
+const REFERENCE_KIND_LABEL: Record<ReferenceItem['kind'], string> = {
+  topic: '选题',
+  viral: '爆款',
+  draft: '草稿',
+  publication: '发布记录',
+}
+
 function errorText(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
@@ -114,6 +123,11 @@ function safeUrl(value: string | undefined): string | undefined {
   } catch {
     return undefined
   }
+}
+
+export function referenceClipboardText(reference: LibraryReference): string {
+  const label = reference.label.replace(/[\[\]()\r\n]/gu, ' ').replace(/\s+/gu, ' ').trim().slice(0, 160) || '未命名内容'
+  return `@[${label}](dsh-mediaops:${reference.kind}:${encodeURIComponent(reference.id)})`
 }
 
 function StatusBadge({ value }: { value: string | undefined }) {
@@ -205,6 +219,22 @@ function PublicationCard({ item }: { item: PublicationItem }) {
   )
 }
 
+function ReferenceCard({ item, onCopy }: { item: ReferenceItem; onCopy: (item: ReferenceItem) => void }) {
+  return (
+    <article style={styles.card}>
+      <div style={{ ...styles.row, justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <h3 style={styles.cardTitle}>{item.label}</h3>
+        <span style={styles.badge}>{REFERENCE_KIND_LABEL[item.kind]}</span>
+      </div>
+      {item.description !== undefined ? <div style={styles.body}>{item.description}</div> : null}
+      <div style={{ ...styles.row, marginTop: 8 }}>
+        {item.hint !== undefined ? <span style={styles.muted}>{item.hint}</span> : null}
+        <button type="button" style={styles.button} onClick={() => onCopy(item)}>复制 @ 引用</button>
+      </div>
+    </article>
+  )
+}
+
 export interface MediaOpsWorkbenchProps {
   compact?: boolean
 }
@@ -220,7 +250,12 @@ export function MediaOpsWorkbench({ compact = false }: MediaOpsWorkbenchProps) {
   const [tags, setTags] = useState('')
   const [creating, setCreating] = useState(false)
   const [promoting, setPromoting] = useState<string | null>(null)
+  const [referenceQuery, setReferenceQuery] = useState('')
+  const [referenceResults, setReferenceResults] = useState<ReferenceItem[]>([])
+  const [referenceLoading, setReferenceLoading] = useState(false)
+  const [referenceSearched, setReferenceSearched] = useState(false)
   const controllerRef = useRef<AbortController | null>(null)
+  const referenceControllerRef = useRef<AbortController | null>(null)
 
   const reload = useCallback(async () => {
     controllerRef.current?.abort()
@@ -242,7 +277,10 @@ export function MediaOpsWorkbench({ compact = false }: MediaOpsWorkbenchProps) {
 
   useEffect(() => {
     void reload()
-    return () => controllerRef.current?.abort()
+    return () => {
+      controllerRef.current?.abort()
+      referenceControllerRef.current?.abort()
+    }
   }, [reload])
 
   const counts = useMemo(() => ({
@@ -298,12 +336,41 @@ export function MediaOpsWorkbench({ compact = false }: MediaOpsWorkbenchProps) {
   }, [reload])
 
   const copyTopic = useCallback(async (item: TopicItem) => {
-    const label = item.title.replace(/[\[\]()\r\n]/gu, ' ').slice(0, 160)
-    const value = `@[${label}](dsh-mediaops:topic:${encodeURIComponent(item.id)})`
+    const value = referenceClipboardText({ kind: 'topic', id: item.id, label: item.title })
     try {
       if (navigator.clipboard === undefined) throw new Error('当前环境不支持剪贴板')
       await navigator.clipboard.writeText(value)
       setMessage({ kind: 'ok', text: `已复制「${item.title}」的定位文本；要发送完整结构化资料，请在对话输入框键入 @ 并从选题库选择` })
+    } catch (error) {
+      setMessage({ kind: 'error', text: `复制失败：${errorText(error)}` })
+    }
+  }, [])
+
+  const submitReferenceSearch = useCallback(async (event: FormEvent) => {
+    event.preventDefault()
+    referenceControllerRef.current?.abort()
+    const controller = new AbortController()
+    referenceControllerRef.current = controller
+    setReferenceLoading(true)
+    setReferenceSearched(true)
+    try {
+      const items = await fetchReferences(referenceQuery, controller.signal)
+      if (!controller.signal.aborted) {
+        setReferenceResults(items)
+        setMessage(null)
+      }
+    } catch (error) {
+      if (!controller.signal.aborted) setMessage({ kind: 'error', text: `搜索引用失败：${errorText(error)}` })
+    } finally {
+      if (!controller.signal.aborted) setReferenceLoading(false)
+    }
+  }, [referenceQuery])
+
+  const copyReference = useCallback(async (item: ReferenceItem) => {
+    try {
+      if (navigator.clipboard === undefined) throw new Error('当前环境不支持剪贴板')
+      await navigator.clipboard.writeText(referenceClipboardText(item))
+      setMessage({ kind: 'ok', text: `已复制「${item.label}」的 @ 引用定位文本` })
     } catch (error) {
       setMessage({ kind: 'error', text: `复制失败：${errorText(error)}` })
     }
@@ -338,6 +405,33 @@ export function MediaOpsWorkbench({ compact = false }: MediaOpsWorkbenchProps) {
         ))}
       </nav>
 
+      <section style={styles.panel} aria-label="统一引用搜索">
+        <h2 style={styles.panelTitle}>搜索引用</h2>
+        <form style={styles.row} onSubmit={(event) => void submitReferenceSearch(event)}>
+          <label style={{ flex: '1 1 320px' }}>
+            <span style={styles.muted}>搜索选题、爆款、草稿和发布记录</span>
+            <input
+              type="search"
+              style={styles.input}
+              value={referenceQuery}
+              maxLength={200}
+              onChange={(event) => setReferenceQuery(event.target.value)}
+              placeholder="标题、正文、平台或状态"
+            />
+          </label>
+          <button type="submit" disabled={referenceLoading} style={referenceLoading ? { ...styles.button, ...styles.disabled } : styles.button}>
+            {referenceLoading ? '搜索中…' : '搜索'}
+          </button>
+        </form>
+        {referenceSearched ? (
+          <div style={{ marginTop: 10 }} aria-live="polite">
+            {referenceResults.length === 0 && !referenceLoading
+              ? <Empty>没有找到可引用内容。</Empty>
+              : <div style={styles.grid}>{referenceResults.map((item) => <ReferenceCard key={`${item.kind}:${item.id}`} item={item} onCopy={(value) => void copyReference(value)} />)}</div>}
+          </div>
+        ) : null}
+      </section>
+
       {message !== null ? <div role="status" style={message.kind === 'ok' ? styles.ok : styles.error}>{message.text}</div> : null}
 
       {tab === 'overview' ? (
@@ -359,7 +453,7 @@ export function MediaOpsWorkbench({ compact = false }: MediaOpsWorkbenchProps) {
           <section style={styles.panel}>
             <h2 style={styles.panelTitle}>对话即工作台</h2>
             <div style={styles.callout}>
-              在输入框键入 <strong>@</strong> 可引用选题库或爆款库；键入 <strong>/</strong> 可启动爆款发现、整理、创作、发布与盘点流程。发布流程会先生成预览，只有明确确认后才执行。
+              在输入框键入 <strong>@</strong> 可引用选题、爆款、草稿或发布记录；键入 <strong>/</strong> 可启动爆款发现、整理、创作、发布与盘点流程。发布流程会先生成预览，只有明确确认后才执行。
             </div>
           </section>
           <section style={styles.panel}>

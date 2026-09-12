@@ -10,8 +10,11 @@ coverage/
 .env.*
 !.env.example
 .dsh-mediaops-data/
-**/.github/
+skills/**/.github/
+.artifacts/
 skills/**/tests/
+!skills/shared/tests/
+!skills/shared/tests/test_safe_http.py
 **/credentials/
 **/browser-profiles/
 **/.dsh-browser-profiles/

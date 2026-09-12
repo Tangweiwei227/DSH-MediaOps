@@ -1,6 +1,6 @@
 ---
 name: tts-voiceover
-description: "文字转语音配音：把文案/脚本合成为 AI 语音口播、旁白、朗读音频。**配了 VOICE_PROVIDER 默认走闭源云 TTS（CosyVoice2 等，有情感、像真人），edge 仅无 key 时兜底**（edge 偏机械/AI 味）；同步输出分句 SRT 字幕、mp3/wav/m4a。合成后可与 BGM 混音或加到视频作旁白。当用户说“配音”“文字转语音”“TTS”“AI 配音”“口播语音”“旁白”“朗读”“把这段文字读出来”“生成语音”“语音合成”时使用。"
+description: "文字转语音配音：把文案/脚本合成为 AI 语音口播、旁白、朗读音频。DSH managed 模式使用设置页的云 TTS，每个远程合成步骤通过 mediaops_run_model_script 独立审批；可在生成后本地拼接 SRT 字幕及 mp3/wav/m4a。当用户说“配音”“文字转语音”“TTS”“AI 配音”“口播语音”“旁白”“朗读”“把这段文字读出来”“生成语音”“语音合成”时使用。"
 layer: produce
 ---
 
@@ -8,13 +8,14 @@ layer: produce
 
 # 文字转语音配音（TTS Voiceover）
 
-> **配置检查路径铁律**：先 `cd "$DSH_MEDIAOPS_WORKSPACE"` 并确认 workspace 根的 `.env`。云 TTS 配置只能用 DSH 展开的绝对 `model_registry.py configured --group voice --env-file .env` 和 `voice_clone.py check ... --env-file .env` 判断；脚本代码位于只读插件资源目录，不要求 workspace 自带 `skills/`，也不得用 `env` / `printenv` 推断 Key/URL 缺失。
+## DSH 受管模式（最高优先级）
 
-把文案 / 脚本合成为 AI 语音（口播、旁白、朗读）。共享脚本 `skills/shared/scripts/tts.py speak`：
-**默认闭源优先**——配了 `.env` 的 `VOICE_PROVIDER`(+ VOICE_API_KEY) 就走闭源云 TTS（voice_clone，
-按句合成+拼接+分句 SRT，有情感、像真人），**没 key 才退 edge**（AI 味、生硬，仅兜底）。
-`--engine closed/edge` 可强制；闭源音色用 `--voice` 传 voice-id（如 `FunAudioLLM/CosyVoice2-0.5B:alex`），
-旁白默认 alex，可用 `VOICE_NARRATOR_VOICE_ID` 覆盖。合成后语音可交 `audio_ops.py`/`video_ops.py` 混音或加到视频。
+把文案 / 脚本合成为 AI 语音（口播、旁白、朗读）时：
+
+1. 先调用 `mediaops_model_status` 确认语音 provider 已在 DSH-MediaOps 设置页就绪；不读写 `.env`、不索要 key。
+2. 每个远程合成步骤必须单独调用 `mediaops_run_model_script({"script":"voice-clone","argv":["clone",...]})` 并各自审批。长文本如分句，每句是一次独立的远程调用。
+3. DSH managed 模式禁止直接运行 `tts.py` 的云 TTS，因为它会在内部绕过逐次审批。edge-tts 远程合成当前也未接入 managed runner，在 DSH 内暂不可用。
+4. 可在每句受控合成后，使用本地确定性音频工具拼接音轨/生成 SRT。
 
 ## 输入
 
@@ -31,50 +32,13 @@ layer: produce
 - 可选同步输出 SRT 字幕（`--subtitle`），供视频烧字幕用
 - 打印实际执行的 edge-tts 命令 + 输出文件时长/大小/音色
 
-## 前置：外网代理
+## 受管执行
 
-edge-tts 调微软在线服务，**必须能访问外网**。内网环境先设代理：
+单段示例：`mediaops_run_model_script({"script":"voice-clone","argv":["clone","--text","欢迎来到本期内容","--voice-id","alloy","--speed","1","--output","outputs/主题名/intro.mp3"]})`
 
-```bash
-export https_proxy=http://<代理host>:<端口> http_proxy=http://<代理host>:<端口>
-```
+## 本地后处理
 
-脚本会自动读环境变量代理并透传给 edge-tts（也可用 `--proxy` 覆盖）。
-
-## 执行步骤
-
-脚本路径（相对项目根）：`skills/shared/scripts/tts.py`。每个子命令支持 `-h`。
-
-### 0. 挑音色（可选）
-
-```bash
-python skills/shared/scripts/tts.py voices          # 常用中文音色 + 简介
-python skills/shared/scripts/tts.py voices --all    # 拉全量 zh- 音色（需外网）
-```
-
-### 1. 合成配音 speak
-
-```bash
-# 最简：一句话 → mp3
-python skills/shared/scripts/tts.py speak --text "欢迎来到本期内容" \
-  -o outputs/主题名/intro.mp3
-
-# 长文本从文件读 + 换音色 + 加速 10%
-python skills/shared/scripts/tts.py speak --file script.txt \
-  -o outputs/主题名/narration.mp3 --voice zh-CN-YunxiNeural --rate +10%
-
-# 同步出 SRT 字幕（视频烧字幕用）
-python skills/shared/scripts/tts.py speak --file script.txt \
-  -o outputs/主题名/vo.mp3 --subtitle outputs/主题名/vo.srt
-
-# 输出 wav（需 ffmpeg，便于后续无损处理）
-python skills/shared/scripts/tts.py speak --text "……" \
-  -o outputs/主题名/vo.wav --format wav
-```
-
-参数：`--rate +10%`（语速）、`--volume +20%`（音量）、`--pitch +2Hz`（音调）。
-
-### 2. 后处理（可选，复用已有共享脚本）
+受控语音产物可按需接下游本地脚本，无需重造能力：
 
 配音出来后按需接下游脚本，无需在本 SKILL 重造能力：
 
@@ -106,8 +70,8 @@ python skills/shared/scripts/video_ops.py bgm -i clip.mp4 -o clip_vo.mp4 \
 ## 规则
 
 1. **绝不覆盖原始素材** — 只写新文件到 `outputs/主题名/`。
-2. **长文本走 --file** — 避免命令行过长 / 换行转义问题。
-3. **先设代理** — edge-tts 需外网，网络失败脚本会给明确提示。
+2. **长文本分段** — 每段单独受控调用/审批，不用 shell 拼接。
+3. **配置只走设置页** — 不在 workspace 保存 provider 密钥。
 4. **不重造能力** — 混音/归一化/加视频旁白复用 audio_ops.py / video_ops.py。
 5. **无 Profile 也能用** — 无画像时用默认音色晓晓。
 

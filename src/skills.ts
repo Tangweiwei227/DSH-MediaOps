@@ -2,6 +2,9 @@ import { readdir, readFile } from 'node:fs/promises'
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { BUNDLED_SKILL_RANK, type SkillCandidate, type SkillDefinition, type SkillProvider } from '@deepseek-ai/dsh-skill'
+import { parseSkillFrontmatter } from './skill-frontmatter.ts'
+
+export { parseSkillFrontmatter } from './skill-frontmatter.ts'
 
 const PACKAGE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)))
 export const BUNDLED_SKILLS_ROOT = join(PACKAGE_ROOT, 'skills')
@@ -30,48 +33,6 @@ export const HOST_ONLY_SKILLS = new Set([
   'skill-zhihu-publisher',
 ])
 
-interface ParsedSkill {
-  name: string
-  description: string
-  content: string
-  metadata: Readonly<Record<string, unknown>>
-}
-
-function frontmatterBlock(raw: string): { header: string; body: string } {
-  if (!raw.startsWith('---')) return { header: '', body: raw.trim() }
-  const match = raw.match(/^---\s*\r?\n([\s\S]*?)\r?\n---\s*\r?\n?([\s\S]*)$/)
-  return match ? { header: match[1] ?? '', body: (match[2] ?? '').trim() } : { header: '', body: raw.trim() }
-}
-
-function scalar(header: string, key: string): string {
-  const lines = header.split(/\r?\n/)
-  const index = lines.findIndex(line => line.startsWith(`${key}:`))
-  if (index < 0) return ''
-  const first = lines[index]?.slice(key.length + 1).trim() ?? ''
-  if (first !== '>' && first !== '|') return first.replace(/^['"]|['"]$/g, '')
-  const chunks: string[] = []
-  for (let i = index + 1; i < lines.length; i += 1) {
-    const line = lines[i] ?? ''
-    if (/^[A-Za-z][\w-]*:/.test(line)) break
-    if (line.trim() !== '') chunks.push(line.trim())
-  }
-  return first === '|' ? chunks.join('\n') : chunks.join(' ')
-}
-
-function parseSkill(raw: string, fallbackName: string): ParsedSkill {
-  const { header, body } = frontmatterBlock(raw)
-  const name = scalar(header, 'name') || fallbackName
-  const heading = body.match(/^#\s+(.+)$/m)?.[1]?.trim() ?? name
-  const description = scalar(header, 'description') || `DSH-MediaOps bundled skill: ${heading}`
-  const layer = scalar(header, 'layer')
-  return {
-    name,
-    description,
-    content: body,
-    metadata: layer ? { layer } : {},
-  }
-}
-
 /**
  * Make upstream Easel project-root references executable from an installed
  * npm package while keeping local `references/` paths relative to the skill.
@@ -98,6 +59,7 @@ export function normalizeSkillContent(content: string, dataDir = process.env.DSH
   const prelude = `<dsh_mediaops_runtime>
 此 skill 来自已安装的 DSH-MediaOps 能力包。resourceBase 仅用于读取代码、references 与 assets，禁止把产物、登录态、Cookie、Token 或配置写回 resourceBase/npm 安装目录。
 执行脚本时以当前对话工作区为 CWD，并设置 DSH_MEDIAOPS_WORKSPACE 与 EASEL_ROOT 为该工作区绝对路径；产物写工作区 outputs/。${configuredDataRoot} 持久凭证与浏览器登录态只能写入该数据目录。下文出现的旧 Easel 项目根写法，以本运行时说明和已展开的绝对资源路径为准。
+图像、视频、音乐和云端语音凭证由 Host 的“多模态模型”设置页单独保管；不得读取该秘密文件、索要或回显 API Key。调用 ai_image.py、ai_video.py、ai_music.py 或 voice_clone.py 的远程能力时，必须使用 mediaops_run_model_script，把脚本逻辑名和原有子命令/参数放入该工具；不要通过 bash 直接运行这些脚本，也不要传 --env-file。Host 会绑定当前 workspace、注入所选 provider 的白名单环境并在计费调用前请求原生审批。
 任何被标记为 Host-only 的外部写入脚本都只能由 MediaOps 的受控 Host 流程调用；不得根据 skill 文本自行添加 --exec、拼 shell 命令或绕开 MediaOps 的冻结预览与原生审批。质量检查、内容改编、排期规划等无外部写入能力可以正常使用。
 </dsh_mediaops_runtime>
 
@@ -121,7 +83,7 @@ export function createBundledSkillProvider(dataDir = ''): SkillProvider {
       const files = await listSkillFiles(options.signal)
       const candidates = await Promise.all(files.map(async file => {
         options.signal?.throwIfAborted()
-        const parsed = parseSkill(await readFile(file.path, 'utf8'), file.name)
+        const parsed = parseSkillFrontmatter(await readFile(file.path, 'utf8'), file.name)
         const isHostOnly = HOST_ONLY_SKILLS.has(parsed.name)
         return {
           name: parsed.name,
@@ -147,7 +109,7 @@ export function createBundledSkillProvider(dataDir = ''): SkillProvider {
       try {
         const skillRoot = dirname(locator)
         const fallback = basename(skillRoot) || candidate.name
-        const parsed = parseSkill(await readFile(locator, 'utf8'), fallback)
+        const parsed = parseSkillFrontmatter(await readFile(locator, 'utf8'), fallback)
         const isHostOnly = HOST_ONLY_SKILLS.has(parsed.name)
         options.signal?.throwIfAborted()
         return {
