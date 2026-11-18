@@ -228,6 +228,8 @@ DSH 的 id 定向 patch 会整体替换该行 `config`，不是逐字段深度�
 
 DSH 设置中的“多模态模型”页可配置文生图、文生视频、音乐和云端语音 Provider；当前不包含受管 ASR/语音转写组。每次只使用明确选中的默认 Provider，不自动故障转移。API Key 单独保存在 `<data-root>/secrets/multimodal-models.json`（目录 `0700`、文件 `0600`），不会进入 `state.json`、浏览器回读、对话或审批。密钥更新明确区分保留、更换与清除。公网 HTTP 始终拒绝；只有显式开启私网权限，且目标全部解析为 loopback、RFC1918 或 IPv6 ULA 地址时，私网 HTTP 才可用。该授权只适用于 API endpoint，媒体下载仍只允许公网 HTTPS 目标。
 
+模型配置属于 DSH 安装级（data root）：同一安装下的所有会话与工作区共用同一份 Provider 凭证与默认选择，配置一次即可跨工作区复用，不随 workspace 迁移；更换机器或 `DSH_HOME` 后需重新配置。
+
 Bundled skills 通过 `mediaops_run_model_script` 使用 Host 注入的白名单环境；该工具只允许运行四个预定义脚本及受限 argv，绑定当前 workspace、输出限制在真实的 `outputs/` 目录、`shell: false`，并在可能产生 API 费用前请求 DSH 原生审批。批准记录与同一个调用一次性绑定，配置或输入变化会被拒绝；本地输入按获批 SHA-256 复制为只读 snapshot。受控请求禁用环境代理并固定已验证的 DNS 地址，Provider 私网授权不会扩散到媒体下载。发起 Provider 请求前，脚本用 Host 注入的 device/inode 复核 workspace 与 `outputs/`，再以 `O_NOFOLLOW`、`dir_fd` 打开并持有目标父目录；临时文件和最终替换都相对该描述符执行，受管 FFmpeg 转码使用预先打开、可 seek 的普通文件描述符。模型子进程被 SIGKILL，而 Host 与已批准目录身份保持正常时，Host 的 `finally` 会按 run ID 精确清理；若 Host 一并崩溃，则只在可信 v2 pending 记录证明原 owner 已死亡、且目录 inode 仍匹配时恢复。活跃/身份未知 owner 和 v1/畸形记录会保守保留。完整字段、Provider、API 契约和保守恢复边界见 [多模态模型配置](docs/MULTIMODAL_MODELS.md)。
 
 ## 本地开发
