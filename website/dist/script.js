@@ -14,15 +14,59 @@ const commands = {
 }
 
 const header = document.querySelector('[data-header]')
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+const motion = new Set()
+const animateIn = (element, delay = 0, distance = 22) => {
+  if (!element || reducedMotion.matches || !element.animate) return
+  const animation = element.animate([
+    { opacity: 0, transform: `translateY(${distance}px)` },
+    { opacity: 1, transform: 'translateY(0)' },
+  ], {
+    duration: 720,
+    delay,
+    easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+    fill: 'backwards',
+  })
+  motion.add(animation)
+  animation.finished.catch(() => {}).finally(() => motion.delete(animation))
+  return animation
+}
+
+reducedMotion.addEventListener('change', () => {
+  if (reducedMotion.matches) motion.forEach((animation) => animation.cancel())
+})
+
+// Content stays visible if animation or IntersectionObserver is unavailable.
+document.querySelectorAll('.hero-copy > *').forEach((element, index) => animateIn(element, index * 85))
+animateIn(document.querySelector('.ops-window'), 160, 32)
+document.querySelectorAll('.ops-body > *, .trust-strip > *').forEach((element, index) => animateIn(element, 320 + index * 110))
+
+if ('IntersectionObserver' in window) {
+  const reveal = new IntersectionObserver((entries) => {
+    const visible = entries.filter((entry) => entry.isIntersecting)
+    visible.forEach((entry, index) => {
+      animateIn(entry.target, Math.min(index, 3) * 75)
+      reveal.unobserve(entry.target)
+    })
+  }, { threshold: 0.12 })
+  document.querySelectorAll([
+    '.section-heading', '.workflow-rail > li', '.command-lab',
+    '.model-console', '.capability-matrix > article', '.safety-copy',
+    '.safety-protocol > li', '.install-grid > *', '.closing .shell > *',
+  ].join(',')).forEach((element) => reveal.observe(element))
+}
+
 const syncHeader = () => header?.classList.toggle('is-scrolled', window.scrollY > 12)
 window.addEventListener('scroll', syncHeader, { passive: true })
 syncHeader()
 
+let commandAnimation
 document.querySelectorAll('[data-command]').forEach((button) => {
   button.addEventListener('click', () => {
     const key = button.dataset.command
     const next = commands[key]
     if (!next) return
+    if (button.classList.contains('is-active')) return
     document.querySelectorAll('[data-command]').forEach((item) => {
       const active = item === button
       item.classList.toggle('is-active', active)
@@ -32,6 +76,8 @@ document.querySelectorAll('[data-command]').forEach((button) => {
     const result = document.querySelector('[data-command-result]')
     if (prompt) prompt.textContent = next.prompt
     if (result) result.textContent = next.result
+    commandAnimation?.cancel()
+    commandAnimation = animateIn(document.querySelector('.command-panel'), 0, 8)
   })
 })
 
