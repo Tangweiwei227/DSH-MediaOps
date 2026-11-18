@@ -30,6 +30,7 @@ await build({
     '@deepseek-ai/dsh-client-ui-conversation/client',
     '@deepseek-ai/dsh-client-ui-input-trigger/client',
     '@deepseek-ai/dsh-client-ui-settings/client',
+    '@deepseek-ai/dsh-client-ui-sidebar-right/client',
     '@deepseek-ai/dsh-client-ui-slots',
   ],
   banner: {

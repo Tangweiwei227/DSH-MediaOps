@@ -6,12 +6,16 @@ import type {} from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
+import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
 import { MediaOpsWorkbench } from './MediaOpsWorkbench.tsx'
 import { createActionSource, createMentionSource } from './triggers.ts'
 import { ModelSettings } from './ModelSettings.tsx'
 
+/** Stable identity of the right-Sidebar tab contributed by this plugin. */
+const MEDIAOPS_SIDEBAR_TAB_ID = 'dsh-mediaops/rightbar'
+
 /** Client services required before this plugin may mount. */
-export const inject = ['slots', 'inputTriggers']
+export const inject = ['slots', 'inputTriggers', 'sidebarRightTabs']
 
 /** Register AI-native input affordances plus the full MediaOps workbench. */
 export function apply(ctx: ClientContext): void {
@@ -53,5 +57,30 @@ export function apply(ctx: ClientContext): void {
       label: '多模态模型',
     },
     () => createElement(ModelSettings),
+  ))
+
+  // Right-Sidebar entry: a page-type tab opened by kind. Stage one declares
+  // the type, stage two renders the workbench body under the same id.
+  ctx.effect(
+    () => ctx.sidebarRightTabs.register({
+      id: MEDIAOPS_SIDEBAR_TAB_ID,
+      kind: 'mediaops',
+      title: () => 'MediaOps',
+      guide: [{
+        id: 'dsh-mediaops',
+        order: 10,
+        title: () => 'MediaOps',
+        description: () => '选题、爆款、草稿与发布队列',
+      }],
+    }),
+    'dsh-mediaops: rightbar tab type',
+  )
+
+  ctx.slots.inject('sidebar.right.pane.tab', () => ctx.slots.register(
+    {
+      name: 'sidebar.right.pane.tab',
+      key: MEDIAOPS_SIDEBAR_TAB_ID,
+    },
+    () => createElement(MediaOpsWorkbench, { compact: true }),
   ))
 }
