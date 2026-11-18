@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "MediaOps",
+    "description": "AI-native media operations workbench. Pull live trends from Weibo, Douyin, Zhihu, Toutiao, Xiaohongshu, Bilibili, Baidu, AI and IT sources; keep candidates in a viral library, turn them into topics, and reference either library with @ in the composer. Save cross-platform drafts, and generate images, video, music or speech through model scripts that each ask for your approval. Publishing never happens on its own: the host runs a dry run, freezes the body and assets, and shows you an immutable preview before a confirmation and a second approval release the platform adapter. Opens as a MediaOps view in the conversation, a MediaOps section in Settings, and a MediaOps tab in the right sidebar. Adds five slash workflows. Ships 112 bundled Easel skills. Topics, viral items, drafts and publication records are stored under $DSH_HOME/mediaops; model scripts and publishers send your content to the providers you configure. Turning the plugin off removes its tools, @ sources and workbench, and leaves the stored records on disk.",
+    "detail": "docs/DETAIL.md"
+  }
+}

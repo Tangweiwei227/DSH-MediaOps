@@ -5,12 +5,15 @@
   "type": "module",
   "packageManager": "pnpm@11.7.0",
   "engines": {
-    "node": "^22.19.0 || >=24.0.0"
+    "node": "^22.19.0 || >=24.0.0",
+    "dsh": ">=0.2.2-rc.3 <0.3.0"
   },
   "main": "lib/index.js",
   "exports": {
     ".": "./lib/index.js",
     "./client": "./lib/client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg",
     "./cordis.patch.yml": "./cordis.patch.yml",
     "./package.json": "./package.json"
   },
@@ -101,7 +104,9 @@
     "!skills/**/outputs/**",
     "!skills/**/profiles/**",
     "!skills/**/cookies*.json",
-    "!skills/**/*token_cache*.json"
+    "!skills/**/*token_cache*.json",
+    "locale",
+    "icon.svg"
   ],
   "keywords": [
     "dsh",
