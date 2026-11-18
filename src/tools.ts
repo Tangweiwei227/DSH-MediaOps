@@ -1,4 +1,5 @@
-import { defineTool, type JsonValue } from '@deepseek-ai/dsh-tools'
+import { defineTool } from '@deepseek-ai/dsh-tools'
+import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import type { ContentBlock } from '@deepseek-ai/dsh-llm'
 import { MEDIA_PLATFORMS, type DraftStatus, type MediaPlatform, type TopicStatus } from './types.ts'
 import { TREND_PLATFORMS, type TrendPlatform, TrendService } from './trends.ts'
