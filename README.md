@@ -2,7 +2,7 @@
 
 DSH-MediaOps 是一个原生 DeepSeek Harness（DSH）插件，把 [Easel](https://github.com/ZJU-REAL/Easel) 的完整媒体运营能力重新组织成「对话即工作台」的 AI-native 体验。
 
-[官网](https://dsh-mediaops.tevin2501689480.chatgpt.site) · [插件说明书](docs/PLUGIN_MANUAL.zh-CN.md) · [能力目录](docs/CAPABILITIES.md) · [Issues 可行性审查](docs/ISSUE_TRIAGE_2026-09-12.md)
+[官网](https://pages.xiaotangtevin.top/DSH-MediaOps/) · [插件说明书](docs/PLUGIN_MANUAL.zh-CN.md) · [能力目录](docs/CAPABILITIES.md) · [Issues 可行性审查](docs/ISSUE_TRIAGE_2026-09-12.md)
 
 你可以在对话框里 `@` 选题或爆款、拉取热点、把候选收进爆款库、整理为选题、生成跨平台草稿，并在逐项核对与 DSH 原生审批后由 Host 受控发布。插件也提供 MediaOps 工作台，用于查看选题、爆款、草稿和发布队列。
 
