@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#08111f">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="description" content="核对发布结果，保护本机资料、账号和模型凭证。">
+  <meta name="docs-source" content="96b76bcb590844fdb3ee7290b49af14b5c069c15a7c2a3cf269d72a772b147fc">
+  <title>安全与隐私 · MediaOps 使用文档</title>
+  <link rel="canonical" href="https://pages.xiaotangtevin.top/DSH-MediaOps/docs/safety/">
+  <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../styles.css">
+  <link rel="stylesheet" href="../../docs.css">
+</head>
+<body class="docs-page" data-site-root="../../">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="docs-header">
+      <a class="brand" href="../../" aria-label="DSH-MediaOps 首页">
+        <span class="brand-mark" aria-hidden="true"><span>D</span><span>M</span></span>
+        <span class="brand-copy"><strong>DSH-MediaOps</strong></span>
+      </a>
+      <a class="docs-home" href="../../">返回官网 <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+  <div class="docs-layout">
+    <aside class="docs-sidebar">
+      <details open data-doc-menu>
+        <summary>文档导航</summary>
+        <div class="docs-menu-body">
+          <label class="sr-only" for="doc-search">搜索文档</label>
+          <input id="doc-search" type="search" placeholder="搜索文档" autocomplete="off" aria-controls="doc-results" data-doc-search>
+          <div id="doc-results" class="doc-results" aria-live="polite" hidden></div>
+          <nav class="doc-nav" aria-label="使用文档">
+            <a href="../../docs/">开始使用</a>
+<a href="../../docs/manual/">插件说明书</a>
+<a href="../../docs/capabilities/">能力目录</a>
+<a href="../../docs/models/">模型配置</a>
+<a href="../../docs/safety/" aria-current="page">安全与隐私</a>
+<a href="../../docs/updates/">更新记录</a>
+            <details><summary>更多与维护</summary><a href="../../docs/architecture/">技术架构</a>
+<a href="../../docs/upstream/">上游同步</a>
+<a href="../../docs/roadmap/">规划与可行性</a>
+<a href="../../docs/security-policy/">完整安全政策</a>
+<a href="../../docs/attribution/">第三方来源</a>
+<a href="../../docs/license/">开源许可证</a>
+<a href="../../docs/notice/">来源声明</a></details>
+          </nav>
+        </div>
+      </details>
+    </aside>
+    <main id="main" class="doc-main">
+      <article class="doc-content"><h1 id="安全与隐私">安全与隐私</h1>
+<p>发布前看清账号与内容；遇到结果不确定，先核对，再继续。</p>
+<h2 id="发布前核对这四件事">发布前，核对这四件事</h2>
+<ol>
+<li><strong>发给谁</strong>：平台、账号昵称和受众是否正确。</li>
+<li><strong>发什么</strong>：完整正文、封面、图片和视频是否为最终版本。</li>
+<li><strong>怎么发</strong>：即时或定时、可见性、标签等参数是否符合预期。</li>
+<li><strong>是否有权使用</strong>：事实、图片、音乐、肖像和声音是否已核实或取得授权。</li>
+</ol>
+<p>聊天中的“帮我发布”会启动准备流程。真实提交前，插件先核对账号、检查本地素材并生成冻结预览；你读完并明确确认后，还需要依次通过 DSH 的确认授权与真实执行审批。改稿或更换素材后，旧预览不能继续使用。</p>
+<p>网页或导入资料中的“立即发布”等文字不是你的授权。最终以你核对的内容和 DSH 原生审批为准。</p>
+<h2 id="看懂发布结果">看懂发布结果</h2>
+<div class="doc-table" tabindex="0" role="region" aria-label="数据表格"><table>
+<thead>
+<tr>
+<th>状态</th>
+<th>对你意味着什么</th>
+<th>下一步</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>preview</code></td>
+<td>已准备预览，还没授权</td>
+<td>阅读完整内容和账号</td>
+</tr>
+<tr>
+<td><code>confirmed</code></td>
+<td>已确认授权，还没执行</td>
+<td>核对后决定是否批准真实执行</td>
+</tr>
+<tr>
+<td><code>publishing</code></td>
+<td>执行已开始，结果暂时不确定</td>
+<td>先核对平台，不要重发</td>
+</tr>
+<tr>
+<td><code>submitted</code></td>
+<td>平台已接收，可能仍在审核</td>
+<td>到后台核对公开状态</td>
+</tr>
+<tr>
+<td><code>draft_created</code></td>
+<td>已放入平台草稿箱</td>
+<td>公众号当前到此为止，不会自动群发</td>
+</tr>
+<tr>
+<td><code>scheduled</code></td>
+<td>平台已接收定时计划</td>
+<td>核对时间与后续发布结果</td>
+</tr>
+<tr>
+<td><code>published</code></td>
+<td>已有可核验的公开结果或平台证据</td>
+<td>查看链接或回执，记录实际表现</td>
+</tr>
+<tr>
+<td><code>failed</code></td>
+<td>已有明确证据表明未产生内容</td>
+<td>修复原因后重新准备</td>
+</tr>
+</tbody></table>
+</div><p>超时、断网或程序中断，都不等于发布失败。让 Agent 进行只读对账，再去平台后台核对；人工回填结果也需要 DSH 审批。当前并非所有平台都有自动回查和指标采集能力。</p>
+<h2 id="资料和账号保存在哪里">资料和账号保存在哪里</h2>
+<p>选题、爆款、草稿和发布记录默认保存在本机 <code>~/.dsh/mediaops</code>，也可能由你自定义到其他 data root。平台登录态、公众号配置和模型凭证也存放在该数据目录。生成的文章、图片和音视频保存在当前工作区，受管模型输出位于 <code>outputs/</code>。</p>
+<p>模型设置按 data root 共享，同一数据目录下切换会话或项目不必重复配置。更换机器或数据目录不等于自动迁移。插件不提供多人权限、自动云备份或跨设备同步。</p>
+<p>本地保存不等于加密：请保护电脑登录账户，启用系统磁盘加密，给备份介质加密。卸载插件会保留资料和凭证，避免误删；若不再使用，备份后再删除准确的数据目录。</p>
+<h2 id="哪些内容会发到外部">哪些内容会发到外部</h2>
+<ul>
+<li>查看本地资料库不等于将资料公开。</li>
+<li>拉取热点需要访问第三方数据源。</li>
+<li>调用远程图像、视频、音乐或语音模型时，会向你选择的提供商发送生成所需内容；图生图或声音登记还可能上传输入素材。先确认服务的数据政策及素材授权。</li>
+<li>真实发布会向目标平台提交预览中确认的内容和素材。</li>
+</ul>
+<p>模型 API Key 在 DSH 设置中填写，不要发到聊天里，也不要放进文章、截图、代码仓库或问题反馈。界面只显示是否已配置，不会读回完整 Key。服务可能单独收费，“离线验证”不联网、不扣费，也不保证账号余额和模型权限有效。</p>
+<h2 id="保护你的账号与素材">保护你的账号与素材</h2>
+<p>平台可能要求扫码、验证码、设备验证或人工审核，请在平台正规流程中完成。MediaOps 不会绕过这些机制，也不保证审核通过、流量增长或内容商用授权。</p>
+<p>生成素材仍需核对事实、版权和平台标识要求。声音克隆只应使用本人或已取得授权的声音。素材可用性以具体服务和权利人的授权为准；插件的开源许可证不会自动赋予生成素材商用权。</p>
+<h2 id="不小心暴露了密钥">不小心暴露了密钥</h2>
+<p>先到对应模型或平台控制台撤销或轮换凭证；Cookie 泄露时按平台能力退出会话或重新登录。随后更新本机配置，并从公开内容和日志中移除秘密。只删除一条聊天或 Git 提交不会让泄露的密钥失效。</p>
+<h2 id="反馈问题">反馈问题</h2>
+<p>普通使用问题可通过<a href="https://github.com/Tangweiwei227/DSH-MediaOps/issues" target="_blank" rel="noreferrer">GitHub Issues</a>提交，说明版本、操作步骤和脱敏后的错误。不要附带完整 Key、Cookie、未发布正文、私有链接或浏览器登录资料。</p>
+<p>发现凭证泄露、审批绕过等安全漏洞，请使用<a href="https://github.com/Tangweiwei227/DSH-MediaOps/security/advisories/new" target="_blank" rel="noreferrer">私密漏洞报告</a>，不要公开细节。项目维护默认分支的最新版本，预计七天内确认收到报告；DSH、浏览器、平台或模型服务本身的问题，也应联系其维护方。</p>
+<p>需要了解实现边界时，可继续阅读<a href="../../docs/security-policy/">完整安全政策</a>、<a href="../../docs/manual/">插件说明书</a>和<a href="../../docs/architecture/">技术架构</a>。</p>
+</article>
+      <nav class="doc-pager" aria-label="相邻文档"><a href="../../docs/models/"><span aria-hidden="true">←</span> 模型配置</a><a href="../../docs/updates/">更新记录 <span aria-hidden="true">→</span></a></nav>
+      <footer class="doc-footer"><a href="../../">DSH-MediaOps</a><span>0.2.x</span></footer>
+    </main>
+    <aside class="doc-toc" aria-label="本页目录"><p>本页内容</p><nav><a href="#发布前核对这四件事">发布前，核对这四件事</a>
+<a href="#看懂发布结果">看懂发布结果</a>
+<a href="#资料和账号保存在哪里">资料和账号保存在哪里</a>
+<a href="#哪些内容会发到外部">哪些内容会发到外部</a>
+<a href="#保护你的账号与素材">保护你的账号与素材</a>
+<a href="#不小心暴露了密钥">不小心暴露了密钥</a>
+<a href="#反馈问题">反馈问题</a></nav></aside>
+  </div>
+  <script src="../../docs/search-index.js" defer></script>
+  <script src="../../docs.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#08111f">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="description" content="随插件分发的能力来源、许可证和致谢。">
+  <meta name="docs-source" content="96b76bcb590844fdb3ee7290b49af14b5c069c15a7c2a3cf269d72a772b147fc">
+  <title>第三方来源 · MediaOps 使用文档</title>
+  <link rel="canonical" href="https://pages.xiaotangtevin.top/DSH-MediaOps/docs/attribution/">
+  <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../styles.css">
+  <link rel="stylesheet" href="../../docs.css">
+</head>
+<body class="docs-page" data-site-root="../../">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="docs-header">
+      <a class="brand" href="../../" aria-label="DSH-MediaOps 首页">
+        <span class="brand-mark" aria-hidden="true"><span>D</span><span>M</span></span>
+        <span class="brand-copy"><strong>DSH-MediaOps</strong></span>
+      </a>
+      <a class="docs-home" href="../../">返回官网 <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+  <div class="docs-layout">
+    <aside class="docs-sidebar">
+      <details open data-doc-menu>
+        <summary>文档导航</summary>
+        <div class="docs-menu-body">
+          <label class="sr-only" for="doc-search">搜索文档</label>
+          <input id="doc-search" type="search" placeholder="搜索文档" autocomplete="off" aria-controls="doc-results" data-doc-search>
+          <div id="doc-results" class="doc-results" aria-live="polite" hidden></div>
+          <nav class="doc-nav" aria-label="使用文档">
+            <a href="../../docs/">开始使用</a>
+<a href="../../docs/manual/">插件说明书</a>
+<a href="../../docs/capabilities/">能力目录</a>
+<a href="../../docs/models/">模型配置</a>
+<a href="../../docs/safety/">安全与隐私</a>
+<a href="../../docs/updates/">更新记录</a>
+            <details open><summary>更多与维护</summary><a href="../../docs/architecture/">技术架构</a>
+<a href="../../docs/upstream/">上游同步</a>
+<a href="../../docs/roadmap/">规划与可行性</a>
+<a href="../../docs/security-policy/">完整安全政策</a>
+<a href="../../docs/attribution/" aria-current="page">第三方来源</a>
+<a href="../../docs/license/">开源许可证</a>
+<a href="../../docs/notice/">来源声明</a></details>
+          </nav>
+        </div>
+      </details>
+    </aside>
+    <main id="main" class="doc-main">
+      <article class="doc-content"><h1 id="third-party-notices">Third-party notices</h1>
+<p>DSH-MediaOps vendors the complete skill corpus from <a href="https://github.com/ZJU-REAL/Easel" target="_blank" rel="noreferrer">ZJU-REAL/Easel</a>, source snapshot <code>660dfd2b75d10bea48f57be22d8da694f88851b8</code>. Easel is distributed under the Apache License 2.0. The original skill files, including their per-skill <code>EASEL-META.md</code> provenance records, are retained under <code>skills/openclaw/</code>.</p>
+<h2 id="important-license-status">Important license status</h2>
+<p>This document preserves Easel&#39;s upstream acknowledgments; it is not a legal conclusion about any third-party work. The relationship to a cited source varies by skill: some implementations were adapted, some only reference a design or public methodology, and some invoke a separately installed dependency or commercial service. A citation does not mean that source code from every listed project is bundled.</p>
+<p>The 43 reference-project entries inherited from Easel have <strong>not</strong> been individually license-verified. Most are methodological references or separately installed/runtime dependencies and their source code is not included in this npm package merely because it is named here. Two identifiable vendored sources are called out separately below with complete MIT license texts. Several <code>EASEL-META.md</code> files explicitly mark other upstream license information as <strong>“待核实” (verification pending)</strong>. Before redistributing extracted skill material or installing optional runtime dependencies, review the applicable metadata, current license, and service terms. In particular:</p>
+<ul>
+<li>FFmpeg licensing can be LGPL or GPL depending on the build and enabled components.</li>
+<li><code>edge-tts</code> is identified in Easel metadata as GPL-3.0; RNNoise as BSD; Pillow under its HPND/MIT-CMU-style license.</li>
+<li><code>biliup</code> and other external publishing, browser automation, model, API, or command-line components have independent licenses or service terms.</li>
+<li>DashScope, Suno-like providers, video-generation services, Microsoft Edge online TTS, and social platforms are external services whose use is governed by their own terms.</li>
+<li>References to commercial products and academic work below are methodological acknowledgments, not a grant of rights to those products or publications.</li>
+</ul>
+<p>All names, trademarks, and copyrights belong to their respective owners. No endorsement is implied.</p>
+<h2 id="easel-and-attribution-chain">Easel and attribution chain</h2>
+<div class="doc-table" tabindex="0" role="region" aria-label="数据表格"><table>
+<thead>
+<tr>
+<th>Work</th>
+<th>Relationship</th>
+<th>Notice</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="https://github.com/ZJU-REAL/Easel" target="_blank" rel="noreferrer">ZJU-REAL/Easel</a></td>
+<td>Source of the 112 bundled skills and shared resources</td>
+<td>Apache License 2.0; Easel and its contributors retain applicable rights</td>
+</tr>
+<tr>
+<td>DSH-MediaOps</td>
+<td>DSH packaging, orchestration, and AI-native interaction layer</td>
+<td>See this repository&#39;s <code>LICENSE</code> and <code>NOTICE</code></td>
+</tr>
+</tbody></table>
+</div><h2 id="vendored-mit-licensed-skill-sources">Vendored MIT-licensed skill sources</h2>
+<p>The following source is present in the bundled skill tree rather than merely referenced:</p>
+<div class="doc-table" tabindex="0" role="region" aria-label="数据表格"><table>
+<thead>
+<tr>
+<th>Work</th>
+<th>Bundled location</th>
+<th>License</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="https://github.com/lucasygu/redbook" target="_blank" rel="noreferrer">lucasygu/redbook</a></td>
+<td><code>skills/openclaw/skill-xhs-analyzer/</code></td>
+<td>MIT; Copyright (c) 2026 Lucas Gu; full text in <code>third_party_licenses/lucasygu-redbook-LICENSE</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/white0dew/XiaohongshuSkills" target="_blank" rel="noreferrer">white0dew/XiaohongshuSkills</a></td>
+<td><code>skills/openclaw/skill-xhs-publisher/</code> (including retained metadata/assets; publishing implementation has subsequently been rewritten)</td>
+<td>MIT; Copyright (c) 2026 angiin; full text in <code>third_party_licenses/white0dew-XiaohongshuSkills-LICENSE</code></td>
+</tr>
+</tbody></table>
+</div><p>All remaining tables below are attribution/reference records inherited from Easel. Unless an entry is explicitly identified as vendored above, listing it does not mean its source code is shipped in this package.</p>
+<h2 id="visual-card-chart-and-asset-references">Visual, card, chart, and asset references</h2>
+<div class="doc-table" tabindex="0" role="region" aria-label="数据表格"><table>
+<thead>
+<tr>
+<th>Project</th>
+<th>Referenced by Easel skills</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="https://github.com/nexu-io/open-design" target="_blank" rel="noreferrer">nexu-io/open-design</a></td>
+<td><code>card-quote</code>, <code>card-xiaohongshu</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/antvis/GPT-Vis" target="_blank" rel="noreferrer">antvis/GPT-Vis</a></td>
+<td><code>chart-visualization</code>, <code>infographic</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/danpeig/product-compare-matrix-generator" target="_blank" rel="noreferrer">danpeig/product-compare-matrix-generator</a></td>
+<td><code>comparison-card</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/dostogircse171/solvyy-comparison-table" target="_blank" rel="noreferrer">dostogircse171/solvyy-comparison-table</a></td>
+<td><code>comparison-card</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/codyhouse/products-comparison-table" target="_blank" rel="noreferrer">codyhouse/products-comparison-table</a></td>
+<td><code>comparison-card</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/GreyCat/comparison-table-generator" target="_blank" rel="noreferrer">GreyCat/comparison-table-generator</a></td>
+<td><code>comparison-card</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/unopim/unopim-digital-asset-management" target="_blank" rel="noreferrer">unopim/unopim-digital-asset-management</a></td>
+<td><code>asset-manager</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/biagiomaf/smart-comfyui-gallery" target="_blank" rel="noreferrer">biagiomaf/smart-comfyui-gallery</a></td>
+<td><code>asset-manager</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/enescingoz/awesome-n8n-templates" target="_blank" rel="noreferrer">enescingoz/awesome-n8n-templates</a></td>
+<td><code>template-library</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/danielmiessler/fabric" target="_blank" rel="noreferrer">danielmiessler/fabric</a></td>
+<td><code>template-library</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/liangdabiao/ecom-details-image" target="_blank" rel="noreferrer">liangdabiao/ecom-details-image</a></td>
+<td><code>ecom-details-image</code></td>
+</tr>
+</tbody></table>
+</div><h2 id="writing-voice-and-content-references">Writing, voice, and content references</h2>
+<div class="doc-table" tabindex="0" role="region" aria-label="数据表格"><table>
+<thead>
+<tr>
+<th>Project</th>
+<th>Referenced by Easel skills</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="https://github.com/langgptai/LangGPT" target="_blank" rel="noreferrer">langgptai/LangGPT</a></td>
+<td><code>post-formatter</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/kangarooking/system-prompt-skills" target="_blank" rel="noreferrer">kangarooking/system-prompt-skills</a></td>
+<td><code>post-formatter</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/MrGeDiao/shuorenhua" target="_blank" rel="noreferrer">MrGeDiao/shuorenhua</a></td>
+<td><code>post-formatter</code>, <code>text-polisher</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/charlie947/social-media-skills" target="_blank" rel="noreferrer">charlie947/social-media-skills</a></td>
+<td><code>post-formatter</code>, <code>voice-builder</code>, <code>profile-manager</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/omeyazic/ai-voice-capture-framework" target="_blank" rel="noreferrer">omeyazic/ai-voice-capture-framework</a></td>
+<td><code>voice-builder</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/angelarose210/ghostwriter" target="_blank" rel="noreferrer">angelarose210/ghostwriter</a></td>
+<td><code>voice-builder</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/danielrosehill/My-Tone-Of-Voice" target="_blank" rel="noreferrer">danielrosehill/My-Tone-Of-Voice</a></td>
+<td><code>voice-builder</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/jaimeschwarz/brandvoice" target="_blank" rel="noreferrer">jaimeschwarz/brandvoice</a></td>
+<td><code>voice-builder</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/comp-int-hum/llm-style-transfer" target="_blank" rel="noreferrer">comp-int-hum/llm-style-transfer</a></td>
+<td><code>style-transfer</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/fuzhenxin/Style-Transfer-in-Text" target="_blank" rel="noreferrer">fuzhenxin/Style-Transfer-in-Text</a></td>
+<td><code>style-transfer</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/souro/tst_llm" target="_blank" rel="noreferrer">souro/tst_llm</a></td>
+<td><code>style-transfer</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/praj2408/Text-Summarizer-Project" target="_blank" rel="noreferrer">praj2408/Text-Summarizer-Project</a></td>
+<td><code>text-condenser</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/Huzaifa785/context-compressor" target="_blank" rel="noreferrer">Huzaifa785/context-compressor</a></td>
+<td><code>text-condenser</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/neopunisher/Open-Text-Summarizer" target="_blank" rel="noreferrer">neopunisher/Open-Text-Summarizer</a></td>
+<td><code>text-condenser</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/mathsyouth/awesome-text-summarization" target="_blank" rel="noreferrer">mathsyouth/awesome-text-summarization</a></td>
+<td><code>text-condenser</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/nashsu/Viral_Writer_Skill" target="_blank" rel="noreferrer">nashsu/Viral_Writer_Skill</a></td>
+<td><code>social-content</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/maomao52088/xiaohongshu-automation-skills" target="_blank" rel="noreferrer">maomao52088/xiaohongshu-automation-skills</a></td>
+<td><code>social-content</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/op7418/guizang-social-card-skill" target="_blank" rel="noreferrer">op7418/guizang-social-card-skill</a></td>
+<td><code>social-content</code>; also identified as a design-method reference by <code>card-design</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/JuneYaooo/xhs-writer-skill" target="_blank" rel="noreferrer">JuneYaooo/xhs-writer-skill</a></td>
+<td><code>social-content</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/chubbyguan/chubbyskills" target="_blank" rel="noreferrer">chubbyguan/chubbyskills</a></td>
+<td><code>social-content</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/vivy-yi/xiaohongshu-skills" target="_blank" rel="noreferrer">vivy-yi/xiaohongshu-skills</a></td>
+<td><code>social-content</code></td>
+</tr>
+</tbody></table>
+</div><h2 id="audio-and-video-references">Audio and video references</h2>
+<div class="doc-table" tabindex="0" role="region" aria-label="数据表格"><table>
+<thead>
+<tr>
+<th>Project</th>
+<th>Referenced by Easel skills</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="https://github.com/xiph/rnnoise" target="_blank" rel="noreferrer">xiph/rnnoise</a></td>
+<td><code>audio-denoise</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/GregorR/rnnoise-models" target="_blank" rel="noreferrer">GregorR/rnnoise-models</a></td>
+<td><code>audio-denoise</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/timsainb/noisereduce" target="_blank" rel="noreferrer">timsainb/noisereduce</a></td>
+<td><code>audio-denoise</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/louisedesadeleer/clipify" target="_blank" rel="noreferrer">louisedesadeleer/clipify</a></td>
+<td><code>clipify</code></td>
+</tr>
+</tbody></table>
+</div><h2 id="publishing-and-data-collection-references">Publishing and data-collection references</h2>
+<div class="doc-table" tabindex="0" role="region" aria-label="数据表格"><table>
+<thead>
+<tr>
+<th>Project</th>
+<th>Referenced by Easel skills</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="https://github.com/WJZ-P/douyin-upload-mcp-skill" target="_blank" rel="noreferrer">WJZ-P/douyin-upload-mcp-skill</a></td>
+<td><code>skill-douyin-upload</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/jiji262/wechat-publisher" target="_blank" rel="noreferrer">jiji262/wechat-publisher</a></td>
+<td><code>skill-wechat-publisher</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/lucasygu/redbook" target="_blank" rel="noreferrer">lucasygu/redbook</a></td>
+<td><code>skill-xhs-analyzer</code>; vendored, see MIT notice above</td>
+</tr>
+<tr>
+<td><a href="https://github.com/white0dew/XiaohongshuSkills" target="_blank" rel="noreferrer">white0dew/XiaohongshuSkills</a></td>
+<td><code>skill-xhs-publisher</code>; vendored, see MIT notice above</td>
+</tr>
+<tr>
+<td><a href="https://github.com/NanmiCoder/MediaCrawler" target="_blank" rel="noreferrer">NanmiCoder/MediaCrawler</a></td>
+<td><code>competitor-analysis</code>, <code>content-gap-analysis</code>, <code>ugc-discovery</code>, <code>data-tracker</code>, <code>cross-platform-diff</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/cv-cat/Spider_XHS" target="_blank" rel="noreferrer">cv-cat/Spider_XHS</a></td>
+<td><code>competitor-analysis</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/ReaJason/xhs" target="_blank" rel="noreferrer">ReaJason/xhs</a></td>
+<td><code>competitor-analysis</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/cwjcw/xhs_douyin_content" target="_blank" rel="noreferrer">cwjcw/xhs_douyin_content</a></td>
+<td><code>competitor-analysis</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/54514382/xhs_search_comment_tool" target="_blank" rel="noreferrer">54514382/xhs_search_comment_tool</a></td>
+<td><code>content-gap-analysis</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/laiaccc" target="_blank" rel="noreferrer">laiaccc/XiaohongshuAnalysis</a></td>
+<td><code>cross-platform-diff</code>; repository address was marked pending verification by Easel</td>
+</tr>
+</tbody></table>
+</div><h2 id="news-and-rss-references">News and RSS references</h2>
+<div class="doc-table" tabindex="0" role="region" aria-label="数据表格"><table>
+<thead>
+<tr>
+<th>Project</th>
+<th>Referenced by Easel skills</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="https://github.com/cclank/news-aggregator-skill" target="_blank" rel="noreferrer">cclank/news-aggregator-skill</a></td>
+<td><code>news-intelligence</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/RSS-Renaissance/awesome-newsCN-feeds" target="_blank" rel="noreferrer">RSS-Renaissance/awesome-newsCN-feeds</a></td>
+<td><code>news-intelligence</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/weekend-project-space/top-rss-list" target="_blank" rel="noreferrer">weekend-project-space/top-rss-list</a></td>
+<td><code>news-intelligence</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/xiangyugongzuoliu/awesome-rss-feeds" target="_blank" rel="noreferrer">xiangyugongzuoliu/awesome-rss-feeds</a></td>
+<td><code>news-intelligence</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/SuYxh/ai-news-aggregator" target="_blank" rel="noreferrer">SuYxh/ai-news-aggregator</a></td>
+<td><code>news-intelligence</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/jwenjian/reading-list" target="_blank" rel="noreferrer">jwenjian/reading-list</a></td>
+<td><code>news-intelligence</code></td>
+</tr>
+</tbody></table>
+</div><h2 id="attribution-strategy-and-profile-references">Attribution, strategy, and profile references</h2>
+<div class="doc-table" tabindex="0" role="region" aria-label="数据表格"><table>
+<thead>
+<tr>
+<th>Project</th>
+<th>Referenced by Easel skills</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="https://github.com/bhaskatripathi/pyviralcontent" target="_blank" rel="noreferrer">bhaskatripathi/pyviralcontent</a></td>
+<td><code>content-postmortem</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/prateekjain98/social-media-manager-skills" target="_blank" rel="noreferrer">prateekjain98/social-media-manager-skills</a></td>
+<td><code>profile-manager</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/vanities/social-skills" target="_blank" rel="noreferrer">vanities/social-skills</a></td>
+<td><code>profile-manager</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/coreyhaines31" target="_blank" rel="noreferrer">coreyhaines31/marketingskills</a></td>
+<td><code>strategy-advisor</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/blacktwist" target="_blank" rel="noreferrer">blacktwist/social-media-skills</a></td>
+<td><code>strategy-advisor</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/inovector/mixpost" target="_blank" rel="noreferrer">inovector/mixpost</a></td>
+<td><code>publish-checklist</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/trypostit/trypost" target="_blank" rel="noreferrer">trypostit/trypost</a></td>
+<td><code>publish-checklist</code></td>
+</tr>
+</tbody></table>
+</div><h2 id="tool-and-algorithm-references">Tool and algorithm references</h2>
+<div class="doc-table" tabindex="0" role="region" aria-label="数据表格"><table>
+<thead>
+<tr>
+<th>Project</th>
+<th>Referenced by Easel skills</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="https://github.com/isee15/Lunar-Solar-Calendar-Converter" target="_blank" rel="noreferrer">isee15/Lunar-Solar-Calendar-Converter</a></td>
+<td><code>event-calendar</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/jjonline/calendar.js" target="_blank" rel="noreferrer">jjonline/calendar.js</a></td>
+<td><code>event-calendar</code></td>
+</tr>
+<tr>
+<td><a href="https://github.com/yiyangcpa/Cross-Platform-Comparison" target="_blank" rel="noreferrer">yiyangcpa/Cross-Platform-Comparison</a></td>
+<td><code>cross-platform-diff</code></td>
+</tr>
+</tbody></table>
+</div><h2 id="methodologies-products-and-publications">Methodologies, products, and publications</h2>
+<p>Easel also acknowledges Newsjacking (David Meerman Scott), Google E-E-A-T, JTBD, livestream-commerce scripting patterns, and the content-pyramid method; commercial products including Metricool, Iconosquare, SocialBee, SocialBlade, Later, Mention, Brand24, Taskade, ZBrain, 新榜, 飞瓜, 蝉妈妈, 千瓜, 微播易, 克劳锐, 巨量, and 千川; and academic work on text style transfer, Douyin/TikTok comparison, and AI-content cleanup. These are cited as methodological or analytical references only.</p>
+<p>For the most precise provenance, consult the <code>EASEL-META.md</code> stored beside each affected <code>SKILL.md</code>. When this summary and a per-skill metadata file differ, treat the per-skill file as the more specific record but independently verify any license marked pending.</p>
+</article>
+      <nav class="doc-pager" aria-label="相邻文档"><a href="../../docs/security-policy/"><span aria-hidden="true">←</span> 完整安全政策</a><a href="../../docs/license/">开源许可证 <span aria-hidden="true">→</span></a></nav>
+      <footer class="doc-footer"><a href="../../">DSH-MediaOps</a><span>0.2.x</span></footer>
+    </main>
+    <aside class="doc-toc" aria-label="本页目录"><p>本页内容</p><nav><a href="#important-license-status">Important license status</a>
+<a href="#easel-and-attribution-chain">Easel and attribution chain</a>
+<a href="#vendored-mit-licensed-skill-sources">Vendored MIT-licensed skill sources</a>
+<a href="#visual-card-chart-and-asset-references">Visual, card, chart, and asset references</a>
+<a href="#writing-voice-and-content-references">Writing, voice, and content references</a>
+<a href="#audio-and-video-references">Audio and video references</a>
+<a href="#publishing-and-data-collection-references">Publishing and data-collection references</a>
+<a href="#news-and-rss-references">News and RSS references</a>
+<a href="#attribution-strategy-and-profile-references">Attribution, strategy, and profile references</a>
+<a href="#tool-and-algorithm-references">Tool and algorithm references</a>
+<a href="#methodologies-products-and-publications">Methodologies, products, and publications</a></nav></aside>
+  </div>
+  <script src="../../docs/search-index.js" defer></script>
+  <script src="../../docs.js" defer></script>
+</body>
+</html>

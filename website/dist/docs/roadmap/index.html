@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#08111f">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="description" content="历史可行性审查与后续实现边界。">
+  <meta name="docs-source" content="96b76bcb590844fdb3ee7290b49af14b5c069c15a7c2a3cf269d72a772b147fc">
+  <title>规划与可行性 · MediaOps 使用文档</title>
+  <link rel="canonical" href="https://pages.xiaotangtevin.top/DSH-MediaOps/docs/roadmap/">
+  <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../styles.css">
+  <link rel="stylesheet" href="../../docs.css">
+</head>
+<body class="docs-page" data-site-root="../../">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="docs-header">
+      <a class="brand" href="../../" aria-label="DSH-MediaOps 首页">
+        <span class="brand-mark" aria-hidden="true"><span>D</span><span>M</span></span>
+        <span class="brand-copy"><strong>DSH-MediaOps</strong></span>
+      </a>
+      <a class="docs-home" href="../../">返回官网 <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+  <div class="docs-layout">
+    <aside class="docs-sidebar">
+      <details open data-doc-menu>
+        <summary>文档导航</summary>
+        <div class="docs-menu-body">
+          <label class="sr-only" for="doc-search">搜索文档</label>
+          <input id="doc-search" type="search" placeholder="搜索文档" autocomplete="off" aria-controls="doc-results" data-doc-search>
+          <div id="doc-results" class="doc-results" aria-live="polite" hidden></div>
+          <nav class="doc-nav" aria-label="使用文档">
+            <a href="../../docs/">开始使用</a>
+<a href="../../docs/manual/">插件说明书</a>
+<a href="../../docs/capabilities/">能力目录</a>
+<a href="../../docs/models/">模型配置</a>
+<a href="../../docs/safety/">安全与隐私</a>
+<a href="../../docs/updates/">更新记录</a>
+            <details open><summary>更多与维护</summary><a href="../../docs/architecture/">技术架构</a>
+<a href="../../docs/upstream/">上游同步</a>
+<a href="../../docs/roadmap/" aria-current="page">规划与可行性</a>
+<a href="../../docs/security-policy/">完整安全政策</a>
+<a href="../../docs/attribution/">第三方来源</a>
+<a href="../../docs/license/">开源许可证</a>
+<a href="../../docs/notice/">来源声明</a></details>
+          </nav>
+        </div>
+      </details>
+    </aside>
+    <main id="main" class="doc-main">
+      <article class="doc-content"><h1 id="github-issues-可行性审查2026-09-12">GitHub Issues 可行性审查（2026-09-12）</h1>
+<blockquote>
+<p>这是 2026-09-12 的历史审查记录，不是实时进度页。当前版本行为请先看<a href="../../docs/manual/">插件说明书</a>和<a href="../../docs/updates/">更新记录</a>；下文的旧 DSH 版本与“本轮动作”保留为当时的判断依据。</p>
+</blockquote>
+<p>审查基线：<code>main@7482ba7</code>。本轮对仓库现有 #1–#6 做了代码复现、当前 DSH 协议核对和发布安全评估。结论用于安排实现顺序，不改变 Issue 原始验收要求。</p>
+<h2 id="结论">结论</h2>
+<div class="doc-table" tabindex="0" role="region" aria-label="数据表格"><table>
+<thead>
+<tr>
+<th>Issue</th>
+<th>可行性</th>
+<th>本轮动作</th>
+<th>后续</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><a href="https://github.com/Tangweiwei227/DSH-MediaOps/issues/1" target="_blank" rel="noreferrer">#1 Skill frontmatter 块标量</a></td>
+<td>明确可复现，可直接修复</td>
+<td>v0.2 修复 <code>&gt;</code> / `</td>
+<td><code>的 chomping/indent 解析，补专项测试与</code>pnpm check` lint</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Tangweiwei227/DSH-MediaOps/issues/6" target="_blank" rel="noreferrer">#6 工程健壮性</a></td>
+<td>可实施；原 Issue 部分描述已过时</td>
+<td>v0.2 补 parser、adapter、client trigger 测试；加入固定上游快照、离线门禁、每周 drift 检查和人工同步报告</td>
+<td>routes/Workbench smoke 与 store 迁移按收益继续拆分</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Tangweiwei227/DSH-MediaOps/issues/5" target="_blank" rel="noreferrer">#5 Skills 路由与交互</a></td>
+<td><code>@草稿/@发布记录</code> 可直接做；真正层级按需展开受 DSH 核心限制</td>
+<td>v0.2 增加四库统一引用搜索和安全投影</td>
+<td>层级路由需 DSH provider 协议或独立 router 设计</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Tangweiwei227/DSH-MediaOps/issues/4" target="_blank" rel="noreferrer">#4 热点健壮性</a></td>
+<td>可实施，但应拆为“安全多源”和“时效/缓存”</td>
+<td>完成现状核对和安全设计</td>
+<td>下一轮实现安全源配置、持久 stale cache、freshness 字段与 UI</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Tangweiwei227/DSH-MediaOps/issues/2" target="_blank" rel="noreferrer">#2 发布后自动回查</a></td>
+<td>技术可行，但必须按平台拆分</td>
+<td>明确结构化回执、probe、租约和指标快照边界</td>
+<td>先选一个能返回稳定 post ID/URL 的平台做垂直切片</td>
+</tr>
+<tr>
+<td><a href="https://github.com/Tangweiwei227/DSH-MediaOps/issues/3" target="_blank" rel="noreferrer">#3 连接器增强</a></td>
+<td>三项需求应拆开；公众号群发和无人值守定时风险高</td>
+<td>复用已有跨平台独立状态，形成分阶段设计</td>
+<td>先做组合发布视图；定时先确定授权语义；公众号群发最后做人测门禁</td>
+</tr>
+</tbody></table>
+</div><h2 id="关键证据">关键证据</h2>
+<h3 id="1">#1</h3>
+<p>旧解析器只识别精确的 <code>&gt;</code> 与 <code>|</code>，会把 <code>&gt;-</code> 当成普通字符串。快照中有 45 个 <code>description: &gt;-</code>，其中 36 个属于模型可见 Skill，因此错误会直接污染模型看到的能力描述。</p>
+<p>验收必须保持：112 个 Skills、13 个 Host-only、99 个 model-visible，且 name/description 非空、name 唯一、layer 合法。</p>
+<h3 id="5">#5</h3>
+<p>当前 DSH <code>0.1.1-rc.2</code> 的 Skill provider 只有 list/load 语义；模型上下文会固定包含所有 model-invocable Skill 的名称和描述，没有 group/expand/query/session 协议。仅修改本插件 metadata 无法实现真正的“先注入一级目录、命中后二级展开”。</p>
+<p>本轮可安全交付的部分是：</p>
+<ul>
+<li><code>@选题 / @爆款 / @草稿 / @发布记录</code> 四类统一搜索；</li>
+<li>一次查询只读取 state 一次；</li>
+<li>草稿正文使用有来源声明、XML 转义和总长度上限的引用；</li>
+<li>发布记录只使用显式 allowlist，排除账号指纹、workspace、冻结路径、publisher options、幂等键和原始回执。</li>
+</ul>
+<h3 id="4">#4</h3>
+<p>现状不是“全部平台单源”：微博、抖音、B站和百度已有硬编码 failover；知乎、头条、小红书、AI、IT 仍为单源。真正缺口是安全可配置的数据源、跨重启缓存和保存后的时效信息。</p>
+<p>可配置 URL 会引入 SSRF，因此至少需要 HTTPS、可信 host 或私网阻断、禁止 URL credentials、拒绝 redirect、JSON Content-Type、响应上限和每平台候选源数量上限。<code>窗口期 / 已过热</code> 应按 <code>sourceFetchedAt</code> 运行时计算，不持久化会自然过期的派生标签。</p>
+<h3 id="2">#2</h3>
+<p>现有状态机已经允许 <code>submitted / draft_created / scheduled → published</code>，但依赖人工对账。自动化前必须先有结构化的 <code>platformPostId / platformReceiptId</code>、精确匹配 probe、轮询 claim lease 和有上限的指标快照。</p>
+<p>标题、时间、昵称等模糊匹配只能生成“待人工确认”建议，不能自动把状态改为 <code>published</code>。只读浏览器抓取仍会遇到登录态冲突、DOM 漂移、限流和平台条款风险。</p>
+<h3 id="3">#3</h3>
+<ul>
+<li><strong>组合发布</strong>：现有 <code>draftId + revision</code> 已能聚合部分平台结果，先做派生视图无需迁移；若每个平台允许独立改稿，再引入正式 PublicationGroup。</li>
+<li><strong>Host 定时</strong>：需要独立 SchedulePlan，不能复用表示“平台已接受定时”的 <code>scheduled</code>。必须明确“计划时批准未来外部写入”还是“到点重新批准”，并处理休眠补偿、时区、租约、幂等和 staging 配额。</li>
+<li><strong>公众号群发</strong>：创建草稿、发布文章和群发给受众是三种不同副作用。群发必须有独立 action、受众与人数预览、配额提示、默认关闭、单独审批和真人测试环境。</li>
+</ul>
+<h2 id="推荐顺序">推荐顺序</h2>
+<ol>
+<li>发布 v0.2：#1、#6 可验证切片、#5 四库引用、多模态模型配置、说明书和官网。</li>
+<li>#4：安全多源 + 持久 stale cache + freshness。</li>
+<li>结构化平台回执，再实现 #3 组合发布视图。</li>
+<li>#2 选择单个平台打通精确对账和 T+1 指标，再扩展 T+3/T+7。</li>
+<li>在授权语义确定后实现 Host 定时；公众号群发保留真人测试门禁。</li>
+<li>#5 完整层级路由等待 DSH 核心能力，或另立 router/load 架构提案。</li>
+</ol>
+<p>原则：不以降低审批、身份确认、载荷冻结或证据标准来换取“功能完成”；不能安全自动化时，明确保留人工确认。</p>
+</article>
+      <nav class="doc-pager" aria-label="相邻文档"><a href="../../docs/upstream/"><span aria-hidden="true">←</span> 上游同步</a><a href="../../docs/security-policy/">完整安全政策 <span aria-hidden="true">→</span></a></nav>
+      <footer class="doc-footer"><a href="../../">DSH-MediaOps</a><span>0.2.x</span></footer>
+    </main>
+    <aside class="doc-toc" aria-label="本页目录"><p>本页内容</p><nav><a href="#结论">结论</a>
+<a href="#关键证据">关键证据</a>
+<a href="#推荐顺序">推荐顺序</a></nav></aside>
+  </div>
+  <script src="../../docs/search-index.js" defer></script>
+  <script src="../../docs.js" defer></script>
+</body>
+</html>

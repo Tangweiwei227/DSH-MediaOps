@@ -1,0 +1,85 @@
+.docs-page { background: var(--paper); color: var(--ink); color-scheme: light; }
+.docs-header { max-width: 1560px; margin: auto; height: 76px; padding: 0 40px; display: flex; align-items: center; justify-content: space-between; gap: 20px; color: var(--text); }
+.docs-home { color: var(--muted); text-decoration: none; font-size: 13px; }
+.docs-home:hover { color: var(--cyan); }
+.docs-layout { display: grid; grid-template-columns: 220px minmax(0, 760px) 200px; gap: 54px; max-width: 1560px; margin: auto; padding: 126px 40px 0; align-items: start; }
+.docs-sidebar, .doc-toc { position: sticky; top: 112px; max-height: calc(100dvh - 140px); overflow-y: auto; scrollbar-width: thin; }
+.docs-sidebar > details > summary { display: none; }
+#doc-search { width: 100%; min-width: 0; padding: 11px 12px; border: 1px solid #bcbfb9; background: transparent; border-radius: 0; color: var(--ink); font-size: 14px; }
+#doc-search:focus { border-color: #057d79; outline-color: #057d79; }
+.doc-nav { margin-top: 22px; display: grid; gap: 3px; }
+.doc-nav[hidden] { display: none; }
+.doc-nav a { display: block; padding: 10px 12px; color: #52606a; text-decoration: none; font-size: 14px; border-left: 2px solid transparent; transition: background 180ms, color 180ms; }
+.doc-nav a:hover { color: #057d79; background: rgba(5, 125, 121, 0.04); }
+.doc-nav a[aria-current="page"] { color: #005f5c; font-weight: 650; border-left-color: #057d79; background: rgba(5, 125, 121, 0.065); }
+.doc-nav details { margin-top: 24px; padding-top: 18px; border-top: 1px solid #d2d1c9; }
+.doc-nav summary { padding: 7px 12px; color: #677078; font-size: 12px; cursor: pointer; }
+.doc-main { min-width: 0; }
+.doc-content { font-size: 16px; line-height: 1.9; overflow-wrap: anywhere; }
+.doc-content > :first-child { margin-top: 0; }
+.doc-content h1 { font-size: clamp(32px, 3.4vw, 48px); line-height: 1.22; letter-spacing: -0.04em; font-weight: 650; margin-bottom: 28px; }
+.doc-content h2 { font-size: 25px; line-height: 1.4; letter-spacing: -0.025em; font-weight: 650; border-top: 1px solid #cccfc7; padding-top: 38px; margin: 58px 0 18px; }
+.doc-content h3 { font-size: 19px; line-height: 1.5; margin: 34px 0 12px; }
+.doc-content h4 { font-size: 16px; margin: 28px 0 10px; }
+.doc-content p { margin: 16px 0; color: #394851; }
+.doc-content h1 + p { font-size: 19px; color: #5d6a71; line-height: 1.75; margin-bottom: 32px; }
+.doc-content a { color: #006e6a; text-underline-offset: 4px; text-decoration-thickness: 1px; }
+.doc-content a:hover { color: #064855; }
+.doc-content ul, .doc-content ol { padding-left: 24px; margin: 18px 0; }
+.doc-content li { padding-left: 3px; margin: 8px 0; }
+.doc-content li > p { margin: 8px 0; }
+.doc-content blockquote { margin: 24px 0; padding: 4px 20px; border-left: 2px solid #057d79; background: rgba(5, 125, 121, 0.035); font-size: 14px; }
+.doc-content blockquote p { margin: 8px 0; }
+.doc-content code { font-size: 0.84em; color: #1d5964; background: #e5e6de; padding: 2px 5px; border-radius: 3px; }
+.doc-code { position: relative; margin: 24px 0; }
+.doc-content pre { margin: 24px 0; padding: 24px; background: #0b1929; color: #e0edf5; overflow-x: auto; line-height: 1.8; font-size: 13px; scrollbar-width: thin; }
+.doc-code pre { margin: 0; padding-top: 48px; }
+.doc-content pre code { background: none; padding: 0; color: inherit; font-size: inherit; border-radius: 0; }
+.doc-copy { position: absolute; right: 12px; top: 10px; padding: 5px 8px; background: transparent; border: 1px solid #425569; color: #a8cecd; font: 11px/1.5 var(--sans); cursor: pointer; }
+.doc-copy:hover { border-color: var(--cyan); color: var(--cyan); }
+.doc-table { width: 100%; overflow-x: auto; margin: 24px 0; scrollbar-width: thin; }
+.doc-content table { border-collapse: collapse; width: 100%; min-width: 420px; font-size: 13px; line-height: 1.75; text-align: left; }
+.doc-content th { background: #e4e4db; color: #263d44; font-weight: 650; }
+.doc-content th, .doc-content td { border-bottom: 1px solid #cccec6; padding: 13px 14px; vertical-align: top; }
+.doc-content td:first-child { min-width: 125px; }
+.doc-content table code { font-size: 11px; }
+.doc-content hr { border: 0; border-top: 1px solid #cccec6; margin: 40px 0; }
+.doc-toc { border-left: 1px solid #d2d1c9; padding-left: 20px; font-size: 12px; }
+.doc-toc p { margin: 0 0 14px; font-weight: 650; }
+.doc-toc nav { display: grid; gap: 12px; }
+.doc-toc a { color: #667078; text-decoration: none; line-height: 1.6; }
+.doc-toc a:hover, .doc-toc a[aria-current="location"] { color: #006e6a; }
+.doc-pager { border-top: 1px solid #bfc5bc; padding-top: 24px; margin-top: 60px; display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.doc-pager a { text-decoration: none; color: #006e6a; font-size: 14px; }
+.doc-pager a:hover { text-decoration: underline; }
+.doc-footer { display: flex; justify-content: space-between; gap: 20px; background: none; border: 0; padding: 44px 0 32px; color: #667078; font-size: 11px; }
+.doc-footer a { text-decoration: none; }
+.doc-results { margin-top: 12px; }
+.doc-results a { display: block; color: #183d43; text-decoration: none; padding: 14px 10px; border-bottom: 1px solid #cdd1c7; font-size: 12px; }
+.doc-results a:hover { background: #e3e7dd; }
+.doc-results strong { display: block; font-size: 13px; margin-bottom: 6px; }
+.doc-results p { margin: 0; color: #5b686d; }
+.doc-results > p { font-size: 13px; padding: 12px 0; }
+.docs-page :focus-visible { outline-color: #057d79; }
+@media (max-width: 1280px) {
+  .docs-layout { grid-template-columns: 200px minmax(0, 760px); gap: 42px; }
+  .doc-toc { display: none; }
+}
+@media (max-width: 760px) {
+  .docs-header { padding-inline: 20px; height: 66px; }
+  .docs-layout { display: block; padding: 86px 20px 0; }
+  .docs-sidebar { position: static; max-height: none; overflow: visible; border-bottom: 1px solid #cccfc7; margin-bottom: 34px; padding-bottom: 16px; }
+  .docs-sidebar > details > summary { display: list-item; cursor: pointer; color: #006e6a; font-size: 14px; padding: 8px 0; }
+  .docs-menu-body { padding-top: 16px; }
+  .doc-nav { grid-template-columns: 1fr 1fr; }
+  .doc-nav details { grid-column: 1 / -1; }
+  .doc-main h1 { font-size: 32px; }
+  .doc-content { font-size: 15px; }
+  .doc-content h2 { font-size: 23px; margin-top: 44px; padding-top: 30px; }
+  .doc-content pre { padding-inline: 16px; font-size: 12px; }
+  .doc-content h1 + p { font-size: 17px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .doc-main { animation: doc-enter 500ms ease-out both; }
+}
+@keyframes doc-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }

@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#08111f">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="description" content="配置图像、视频、音乐和语音服务，完成第一次生成。">
+  <meta name="docs-source" content="96b76bcb590844fdb3ee7290b49af14b5c069c15a7c2a3cf269d72a772b147fc">
+  <title>模型配置 · MediaOps 使用文档</title>
+  <link rel="canonical" href="https://pages.xiaotangtevin.top/DSH-MediaOps/docs/models/">
+  <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../styles.css">
+  <link rel="stylesheet" href="../../docs.css">
+</head>
+<body class="docs-page" data-site-root="../../">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="docs-header">
+      <a class="brand" href="../../" aria-label="DSH-MediaOps 首页">
+        <span class="brand-mark" aria-hidden="true"><span>D</span><span>M</span></span>
+        <span class="brand-copy"><strong>DSH-MediaOps</strong></span>
+      </a>
+      <a class="docs-home" href="../../">返回官网 <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+  <div class="docs-layout">
+    <aside class="docs-sidebar">
+      <details open data-doc-menu>
+        <summary>文档导航</summary>
+        <div class="docs-menu-body">
+          <label class="sr-only" for="doc-search">搜索文档</label>
+          <input id="doc-search" type="search" placeholder="搜索文档" autocomplete="off" aria-controls="doc-results" data-doc-search>
+          <div id="doc-results" class="doc-results" aria-live="polite" hidden></div>
+          <nav class="doc-nav" aria-label="使用文档">
+            <a href="../../docs/">开始使用</a>
+<a href="../../docs/manual/">插件说明书</a>
+<a href="../../docs/capabilities/">能力目录</a>
+<a href="../../docs/models/" aria-current="page">模型配置</a>
+<a href="../../docs/safety/">安全与隐私</a>
+<a href="../../docs/updates/">更新记录</a>
+            <details><summary>更多与维护</summary><a href="../../docs/architecture/">技术架构</a>
+<a href="../../docs/upstream/">上游同步</a>
+<a href="../../docs/roadmap/">规划与可行性</a>
+<a href="../../docs/security-policy/">完整安全政策</a>
+<a href="../../docs/attribution/">第三方来源</a>
+<a href="../../docs/license/">开源许可证</a>
+<a href="../../docs/notice/">来源声明</a></details>
+          </nav>
+        </div>
+      </details>
+    </aside>
+    <main id="main" class="doc-main">
+      <article class="doc-content"><h1 id="多模态模型配置">多模态模型配置</h1>
+<p>DSH-MediaOps 在 DSH 设置中提供独立的“多模态模型”页面，用于配置图像、视频、音乐和云端语音能力。配置完成后，bundled skills 通过 Host 受控工具使用这些模型；模型不会看到 API Key，浏览器也不能把已经保存的 Key 读回来。</p>
+<p>配置按 DSH 的本地数据目录（data root）保存：同一 data root 下的会话与工作区共用提供商、凭证和默认选择。日常切换项目无需重配；换机器、<code>DSH_HOME</code> 或自定义 data root 后需安全迁移或重新配置。不同 profile 只有使用同一 data root 时才共享。</p>
+<h2 id="先完成一次生成">先完成一次生成</h2>
+<p>先配置你要用的那一类即可，不需要一次填满四类。以小红书配图为例：</p>
+<ol>
+<li>在“设置 → 多模态模型 → 图像”填写服务地址、模型和 Key，保存并设为默认。</li>
+<li>点击“离线验证”；这只检查填写格式，不验证余额或模型权限。</li>
+<li>回到有工作区的对话，发送：“为这篇稿件生成 1 张 3:4 配图，先给我方案，等我确认后调用模型。”</li>
+<li>核对 DSH 原生审批中的提供商、模型和规格，再批准请求。</li>
+<li>让 Agent 报告生成文件的位置；产物保存在当前工作区的 <code>outputs/</code> 中，不会自动发布。</li>
+</ol>
+<p>模型服务可能单独计费。修改提示词不等于已经开始生成，真实请求以审批后返回的工具结果为准。</p>
+<h2 id="支持范围">支持范围</h2>
+<div class="doc-table" tabindex="0" role="region" aria-label="数据表格"><table>
+<thead>
+<tr>
+<th>类别</th>
+<th>Provider</th>
+<th>能力</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>图像</td>
+<td>OpenAI 兼容 / API 聚合服务</td>
+<td>文生图、图生图、图片变体</td>
+</tr>
+<tr>
+<td>视频</td>
+<td>DashScope、Ark、Kling、OpenAI 兼容、自托管 MaaS、Agnes</td>
+<td>文生视频、图生视频、部分模型原生音频</td>
+</tr>
+<tr>
+<td>音乐</td>
+<td>DashScope、Suno 类兼容 API</td>
+<td>文生音乐、BGM、带歌词歌曲</td>
+</tr>
+<tr>
+<td>语音</td>
+<td>DashScope、MiniMax、Fish Audio、OpenAI 兼容、Gemini</td>
+<td>文本转语音、预置音色、授权声音克隆</td>
+</tr>
+</tbody></table>
+</div><p>每个类别可以保存多个 Provider，并选择一个默认 Provider。每次运行只使用明确选中的默认项，不会自动故障转移。保存不完整的草稿配置是允许的，但只有“已启用 + 必填项齐全”的 Provider 才能执行。当前配置面板只有以上四组，不包含 ASR/语音转写模型组；相关本地或独立 Skill 不会因此自动获得转写 API。</p>
+<h2 id="在-dsh-中配置">在 DSH 中配置</h2>
+<ol>
+<li>打开“设置 → 多模态模型”。</li>
+<li>选择模型类别和 Provider。</li>
+<li>填写 API 根地址、模型 ID 及必要参数。</li>
+<li>在密码框输入新 Key。密码框留空表示保留旧 Key，并不表示清空。</li>
+<li>开启 Provider，点击“保存并设为默认”。</li>
+<li>点击“离线验证”检查必填项和格式。该检查不联网、不会创建任务或产生模型费用。</li>
+</ol>
+<p>要更换 Key，在密码框输入新值后保存。要清除 Key，使用字段旁的“清除”按钮。要删除该 Provider 的全部普通配置和秘密，使用“删除全部配置”。所有删除动作都会明确确认。</p>
+<h3 id="provider-api-根地址与私网">Provider API 根地址与私网</h3>
+<ul>
+<li>公网 HTTP 始终拒绝，即使开启“允许私有网络地址”也不会放行；公网端点必须使用 HTTPS；</li>
+<li><code>localhost</code>、<code>127.0.0.1</code>、<code>::1</code>、RFC1918 和 IPv6 ULA 只有在该 Provider 显式开启“允许私有网络地址”后才可访问；只有目标地址全部属于这些可明确识别的私网范围时，私网 HTTP 才可用；</li>
+<li>私有 IP、保留 IP、单标签主机名和 <code>.local</code> / <code>.internal</code> / <code>.lan</code> 等内网名称默认拒绝；</li>
+<li>自托管服务确需内网访问时，必须显式开启“允许私有网络地址”；该授权仅作用于所配置的 Provider API endpoint，不会传递给媒体下载地址；</li>
+<li>Host 在审批准备和实际执行前都会重新解析端点；真正发起请求时再解析一次，并只连接这一批已经验证的 IP，不让底层 HTTP 客户端二次解析。任一结果落入未授权的私有或保留地址就停止；每次 redirect 都对新目标重复这一过程；</li>
+<li>URL 不得携带用户名、密码、query 或 fragment；受控模型网络请求不继承 Host 的 HTTP(S) 代理环境。</li>
+<li>云元数据主机及地址（包括 <code>169.254.169.254</code>、<code>169.254.170.2</code>、<code>fd00:ec2::254</code> 和常见 metadata 主机名）始终拒绝，开启私网也不例外；链路本地、多播、未指定、文档和其他保留网段也不会被私网开关放行。</li>
+</ul>
+<h2 id="秘密边界">秘密边界</h2>
+<p>秘密配置位于：</p>
+<pre><code class="language-text">&lt;data-root&gt;/secrets/multimodal-models.json
+</code></pre>
+<p>Host 创建 <code>secrets/</code> 为 <code>0700</code>、配置文件为 <code>0600</code>，使用跨进程目录锁、同目录临时文件、原子替换和最佳努力 fsync。文件是本机明文，不是加密保险库；仍应启用操作系统磁盘加密并保护 DSH data root。</p>
+<p>以下位置不会保存或回传 API Key：</p>
+<ul>
+<li><code>state.json</code>；</li>
+<li>浏览器 GET/PUT/DELETE 响应；</li>
+<li>对话上下文和 system prompt；</li>
+<li>DSH 原生审批文本；</li>
+<li>工具参数、正常工具结果和插件日志；</li>
+<li>npm 安装目录或 workspace <code>.env</code>。</li>
+</ul>
+<p>浏览器 DTO 中秘密字段只有 <code>configured: true/false</code>。API 更新必须为每个秘密明确指定：</p>
+<pre><code class="language-json">{
+  &quot;secretChanges&quot;: {
+    &quot;IMG_API_KEY&quot;: { &quot;action&quot;: &quot;keep&quot; }
+  }
+}
+</code></pre>
+<p>可用动作是 <code>keep</code>、<code>replace</code>（同时传 <code>value</code>）和 <code>clear</code>。空字符串不能替代 <code>clear</code>。</p>
+<h2 id="host-api">Host API</h2>
+<p>所有接口位于 <code>/api/dsh-mediaops</code>，继承插件的 loopback、localhost Host、same-origin、1 MiB 请求体和 <code>Cache-Control: no-store</code> 边界。</p>
+<div class="doc-table" tabindex="0" role="region" aria-label="数据表格"><table>
+<thead>
+<tr>
+<th>方法</th>
+<th>路径</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>GET</code></td>
+<td><code>/model-config</code></td>
+<td>获取 Provider schema 和脱敏状态</td>
+</tr>
+<tr>
+<td><code>PUT</code></td>
+<td><code>/model-config/:group/:provider</code></td>
+<td>更新普通字段及显式秘密变更</td>
+</tr>
+<tr>
+<td><code>DELETE</code></td>
+<td><code>/model-config/:group/:provider</code></td>
+<td>删除该 Provider 的全部配置</td>
+</tr>
+<tr>
+<td><code>POST</code></td>
+<td><code>/model-config/:group/:provider/verify</code></td>
+<td>离线验证启用状态、必填项和 URL 格式</td>
+</tr>
+</tbody></table>
+</div><p><code>group</code> 为 <code>image</code>、<code>video</code>、<code>music</code> 或 <code>voice</code>。GET/写入响应的可引用字段包括：</p>
+<ul>
+<li>group：<code>id</code>、<code>label</code>、<code>description</code>、<code>selectedProvider</code>、<code>providers</code>；</li>
+<li>provider：<code>id</code>、<code>label</code>、<code>capabilities</code>、<code>enabled</code>、<code>selected</code>、<code>configured</code>、<code>ready</code>、<code>allowPrivateNetwork</code>、<code>missingRequired</code>、<code>updatedAt</code>；</li>
+<li>field：<code>key</code>、<code>label</code>、<code>required</code>、<code>secret</code>、<code>kind</code>、<code>choices</code>、<code>placeholder</code>、<code>help</code>；</li>
+<li>非秘密 field 额外包含 <code>value</code>；秘密 field 只包含 <code>configured</code>，永远没有 <code>value</code>。</li>
+</ul>
+<h2 id="bundled-skill-执行">Bundled skill 执行</h2>
+<p>远程媒体脚本不能从 bundled skill 直接通过 bash 启动。模型应调用：</p>
+<pre><code class="language-text">mediaops_run_model_script(script, argv)
+</code></pre>
+<p><code>script</code> 只允许 <code>ai-image</code>、<code>ai-video</code>、<code>ai-music</code> 和 <code>voice-clone</code>；<code>argv</code> 第一项是相应脚本的允许子命令。Host 随后：</p>
+<ol>
+<li>从当前 DSH 会话取得绝对 workspace；</li>
+<li>校验固定脚本、子命令、flag 和参数数量，不接受 <code>--env-file</code>、shell 片段或 <code>--model</code> 覆盖；</li>
+<li>要求输入是 workspace 内的普通文件，图像和声音样本均有 Host 大小上限；输出根必须是实际目录而非符号链接，且只允许写入真实 workspace 的 <code>outputs/</code>；Host 把 workspace 与 <code>outputs/</code> 的 device/inode 身份注入受管子进程；</li>
+<li>读取选中 Provider，只投影该 Provider 的白名单环境变量；</li>
+<li>禁止受控进程自动合并 workspace <code>.env</code>；</li>
+<li>在审批与执行之间重新核对 Provider、实际模型、endpoint、私网开关、完整白名单环境、Python executable、参数和本地输入摘要；任一项变化即拒绝；</li>
+<li>对图像数量/质量/尺寸/分辨率、视频/音乐时长、轮询间隔/超时、语速设置 Host 范围；</li>
+<li>显示不含 prompt/Key 的 DSH 原生费用审批：Provider、实际模型、数量/时长/规格、输入 basename/字节数/SHA-256；声音 <code>enroll</code> 还必须明确提示上传样本与授权确认；</li>
+<li>把批准记录绑定到同一个 DSH exec 对象并一次性消费；执行时把本地输入复制到私有 staging，复制后的字节数与 SHA-256 必须等于批准值，脚本只读取只读 snapshot；</li>
+<li>先写入带 owner 进程身份和目录 inode 的非秘密 v2 pending 记录，再使用 <code>shell: false</code> 启动固定 Python 脚本；脚本必须在任何 Provider 请求前以 <code>O_NOFOLLOW</code>、<code>dir_fd</code> 复核并固定 workspace、<code>outputs/</code> 与目标父目录；</li>
+<li>对 stdout、stderr 和错误做精确 Key 替换、临时凭证字段脱敏，并对任何 HTTP(S) URL 去除 userinfo/query/fragment 后再返回。</li>
+</ol>
+<h3 id="远程响应与媒体下载">远程响应与媒体下载</h3>
+<ul>
+<li>携带 Provider 鉴权的创建/轮询 API 不跟随 HTTP redirect，避免跨域转发 Authorization/API Key；</li>
+<li>不携带 Provider 鉴权 header 的媒体下载最多跟随 3 次 redirect，每一跳都重新检查协议、URL 凭证、DNS 和私网/metadata 策略；Provider 的私网开关只授权其 API endpoint，供应商返回的媒体 URL 始终必须解析到公网地址；</li>
+<li>JSON 与错误体有独立字节上限；base64 先按编码长度拒绝超限；直返二进制同样流式限制；</li>
+<li>图像、音频、视频上限分别为 64 MiB、256 MiB、1 GiB。下载同时检查 <code>Content-Length</code> 和流式累计；临时文件以 run ID 命名并通过已固定父目录的 <code>dir_fd</code> 创建，提交前复核其 inode，<code>fsync</code> 后再相对同一描述符原子替换。目标路径在慢速 Provider 请求期间被替换，也不会把产物写入替换后的目录；</li>
+<li>受管语音转码把 FFmpeg 输出到预先打开、可 seek 的普通文件描述符，再走同一 fd-relative 原子提交；不会用不可 seek 的管道冒充 M4A/MP4 等容器输出；</li>
+<li>Python 异常和 SIGTERM 会清理本次 partial。模型子进程遭 SIGKILL、但 Host 与已批准目录身份保持正常时，Host 的 <code>finally</code> 会按本次 run ID 精确删除新旧 partial 并移除 pending 记录；</li>
+<li>如果 Host 本身崩溃，启动/后续清理和定时 janitor 只会依据可信的 v2 pending 记录恢复：必须能明确判定记录中的 owner 进程已经死亡，并且 workspace 与 <code>outputs/</code> 的 device/inode 仍与记录一致。owner 仍活跃或身份无法确认时不会清理；v1、截断或畸形记录会保守保留，也不会读取其中的路径。因而这不是“任何 SIGKILL 残留都必然自动消失”的承诺；</li>
+<li>所有受控模型 HTTP 请求都禁用环境代理，DNS 校验得到的地址就是实际连接地址；HTTPS 仍使用原始主机名完成 SNI 和证书校验。</li>
+</ul>
+<h3 id="v02-bundled-skill-集成限制">v0.2 bundled skill 集成限制</h3>
+<p><code>ai-image-gen</code>、<code>ai-video-gen</code>、<code>ai-music</code> 和 <code>voice-clone</code> 已改为只使用上述受管工具。<code>tts-voiceover</code>、<code>multi-voice-dubbing</code> 的云端步骤必须按段/按行分别调用并审批；它们原有的内部批量 TTS 路径在 managed 模式不可用。<code>short-drama</code> 的 <code>drama_ops.py generate</code> 和 <code>dubbing.py align/dub</code> 尚未能映射为每个远程生成步骤独立的安全 argv+审批，因此 v0.2 的 DSH managed 模式仅支持其策划/剧本/分镜等不联网阶段，不宣称全自动远程批量生成已接入。</p>
+<p><code>mediaops_model_status</code> 可在对话中查看与设置页相同的脱敏状态。真实联网和计费只发生在用户批准的 <code>mediaops_run_model_script</code> 调用中；“离线验证”不代表供应商账号、余额或模型权限一定可用。</p>
+</article>
+      <nav class="doc-pager" aria-label="相邻文档"><a href="../../docs/capabilities/"><span aria-hidden="true">←</span> 能力目录</a><a href="../../docs/safety/">安全与隐私 <span aria-hidden="true">→</span></a></nav>
+      <footer class="doc-footer"><a href="../../">DSH-MediaOps</a><span>0.2.x</span></footer>
+    </main>
+    <aside class="doc-toc" aria-label="本页目录"><p>本页内容</p><nav><a href="#先完成一次生成">先完成一次生成</a>
+<a href="#支持范围">支持范围</a>
+<a href="#在-dsh-中配置">在 DSH 中配置</a>
+<a href="#秘密边界">秘密边界</a>
+<a href="#host-api">Host API</a>
+<a href="#bundled-skill-执行">Bundled skill 执行</a></nav></aside>
+  </div>
+  <script src="../../docs/search-index.js" defer></script>
+  <script src="../../docs.js" defer></script>
+</body>
+</html>

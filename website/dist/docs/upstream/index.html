@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#08111f">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="description" content="维护者使用的 Skill 快照与漂移检查说明。">
+  <meta name="docs-source" content="96b76bcb590844fdb3ee7290b49af14b5c069c15a7c2a3cf269d72a772b147fc">
+  <title>上游同步 · MediaOps 使用文档</title>
+  <link rel="canonical" href="https://pages.xiaotangtevin.top/DSH-MediaOps/docs/upstream/">
+  <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../styles.css">
+  <link rel="stylesheet" href="../../docs.css">
+</head>
+<body class="docs-page" data-site-root="../../">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="docs-header">
+      <a class="brand" href="../../" aria-label="DSH-MediaOps 首页">
+        <span class="brand-mark" aria-hidden="true"><span>D</span><span>M</span></span>
+        <span class="brand-copy"><strong>DSH-MediaOps</strong></span>
+      </a>
+      <a class="docs-home" href="../../">返回官网 <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+  <div class="docs-layout">
+    <aside class="docs-sidebar">
+      <details open data-doc-menu>
+        <summary>文档导航</summary>
+        <div class="docs-menu-body">
+          <label class="sr-only" for="doc-search">搜索文档</label>
+          <input id="doc-search" type="search" placeholder="搜索文档" autocomplete="off" aria-controls="doc-results" data-doc-search>
+          <div id="doc-results" class="doc-results" aria-live="polite" hidden></div>
+          <nav class="doc-nav" aria-label="使用文档">
+            <a href="../../docs/">开始使用</a>
+<a href="../../docs/manual/">插件说明书</a>
+<a href="../../docs/capabilities/">能力目录</a>
+<a href="../../docs/models/">模型配置</a>
+<a href="../../docs/safety/">安全与隐私</a>
+<a href="../../docs/updates/">更新记录</a>
+            <details open><summary>更多与维护</summary><a href="../../docs/architecture/">技术架构</a>
+<a href="../../docs/upstream/" aria-current="page">上游同步</a>
+<a href="../../docs/roadmap/">规划与可行性</a>
+<a href="../../docs/security-policy/">完整安全政策</a>
+<a href="../../docs/attribution/">第三方来源</a>
+<a href="../../docs/license/">开源许可证</a>
+<a href="../../docs/notice/">来源声明</a></details>
+          </nav>
+        </div>
+      </details>
+    </aside>
+    <main id="main" class="doc-main">
+      <article class="doc-content"><h1 id="easel-上游同步与漂移检查">Easel 上游同步与漂移检查</h1>
+<p>DSH-MediaOps 当前固定在 Easel commit <code>660dfd2b75d10bea48f57be22d8da694f88851b8</code>。固定 commit、两棵上游 Skill tree 的 Git object id、Skill 数量和 Host-only 清单记录在 <code>upstream/easel-snapshot.json</code>，避免把会移动的 branch 当成供应链输入。manifest 中的 <code>curatedDigest</code> 另行绑定 DSH 定制后的 <code>skills/openclaw</code> 与 <code>skills/shared</code>：它按 UTF-8 字节序排列相对路径，并摘要路径、文件大小和完整内容，因此本地新增、删除、重命名或修改文件都会让离线门禁失败。空目录不进入摘要（Git 也不跟踪空目录）。</p>
+<h2 id="日常检查">日常检查</h2>
+<ul>
+<li><code>pnpm check:upstream:snapshot</code>：完全离线，严格比对 DSH curated 文件树摘要，并校验 snapshot 元数据、112 个 frontmatter、Host-only 清单与修改声明、NOTICE 引用和两份已识别的 vendored MIT 许可证。它属于 <code>pnpm check</code>；缺少摘要或任一文件漂移都会失败，默认命令绝不改写基线。</li>
+<li><code>pnpm update:upstream:curated</code>：显式、人工使用的基线更新命令。它先通过摘要以外的全部离线安全检查，再把当前摘要原子写入 manifest，并拒绝符号链接、非普通 manifest 或并发改写。只能在逐项审阅合法的 curated 变更之后运行；不要放进自动修复、安装脚本或 CI。</li>
+<li><code>pnpm check:upstream</code>：只读查询 Easel <code>main</code> 远端 commit；与 pin 不同就失败。GitHub Actions 每周运行一次。</li>
+<li><code>pnpm report:upstream</code>：在独立临时 clone 中取候选 commit，比较固定 snapshot，运行候选 frontmatter lint、敏感路径/高置信秘密扫描，并将报告原子写入 <code>.artifacts/easel-upstream-report.md</code>。也可用 <code>--upstream /path/to/Easel --ref &lt;commit&gt;</code> 对本地 Git 对象离线生成报告；脚本不会 checkout 或改写传入仓库。候选树限制为 20,000 个文件、单文件 32 MiB、合计 256 MiB，报告输出拒绝符号链接和非普通文件。</li>
+</ul>
+<p>这些命令不会修改 <code>skills/</code>，也不会把候选 commit 自动写入 pin。自动覆盖会丢失 DSH 的只读 resourceBase、workspace/data-root 路径、安全审批和 Host-only 控制，因此不提供这种模式。</p>
+<h2 id="人工采用流程">人工采用流程</h2>
+<ol>
+<li>在干净 review branch 生成并审阅报告；逐个合并需要的文件，而非目录覆盖。</li>
+<li>对新增或变化的外部写入路径重新做威胁建模；更新 <code>HOST_ONLY_SKILLS</code> 并验证模型与用户都不可直接调用。</li>
+<li>保留/补充 <code>Modified by DSH-MediaOps</code> 声明和原始 <code>EASEL-META.md</code>；重新核验 NOTICE、第三方许可证与商业 API 条款。</li>
+<li>检查旧 <code>&lt;项目根&gt;</code>、profile、Cookie/Token/.env 路径，确保产物进 workspace、秘密进 data root，安装目录保持只读。</li>
+<li>跑 Python publisher self-test、npm 包内容/秘密扫描和隔离 DSH 安装；确认 <code>skills/openclaw</code> 与 <code>skills/shared</code> 的每项 diff 都在审阅范围内。</li>
+<li>只有以上审查通过后，才运行 <code>pnpm update:upstream:curated</code>，检查生成的 manifest diff，并在同一提交更新 <code>upstream/easel-snapshot.json</code> 的 commit、tree id、数量与 curated 摘要。</li>
+<li>最后跑 <code>pnpm check</code>，并附报告/审查结论；摘要更新不能替代测试或人工审查。</li>
+</ol>
+<p>回滚时恢复上一提交的 <code>skills/</code>、NOTICE 与 snapshot manifest；不要只回退 manifest，否则漂移门禁会给出错误的可信状态。</p>
+</article>
+      <nav class="doc-pager" aria-label="相邻文档"><a href="../../docs/architecture/"><span aria-hidden="true">←</span> 技术架构</a><a href="../../docs/roadmap/">规划与可行性 <span aria-hidden="true">→</span></a></nav>
+      <footer class="doc-footer"><a href="../../">DSH-MediaOps</a><span>0.2.x</span></footer>
+    </main>
+    <aside class="doc-toc" aria-label="本页目录"><p>本页内容</p><nav><a href="#日常检查">日常检查</a>
+<a href="#人工采用流程">人工采用流程</a></nav></aside>
+  </div>
+  <script src="../../docs/search-index.js" defer></script>
+  <script src="../../docs.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#08111f">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="description" content="了解插件的客户端、执行端、数据与审批边界。">
+  <meta name="docs-source" content="96b76bcb590844fdb3ee7290b49af14b5c069c15a7c2a3cf269d72a772b147fc">
+  <title>技术架构 · MediaOps 使用文档</title>
+  <link rel="canonical" href="https://pages.xiaotangtevin.top/DSH-MediaOps/docs/architecture/">
+  <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../styles.css">
+  <link rel="stylesheet" href="../../docs.css">
+</head>
+<body class="docs-page" data-site-root="../../">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="docs-header">
+      <a class="brand" href="../../" aria-label="DSH-MediaOps 首页">
+        <span class="brand-mark" aria-hidden="true"><span>D</span><span>M</span></span>
+        <span class="brand-copy"><strong>DSH-MediaOps</strong></span>
+      </a>
+      <a class="docs-home" href="../../">返回官网 <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+  <div class="docs-layout">
+    <aside class="docs-sidebar">
+      <details open data-doc-menu>
+        <summary>文档导航</summary>
+        <div class="docs-menu-body">
+          <label class="sr-only" for="doc-search">搜索文档</label>
+          <input id="doc-search" type="search" placeholder="搜索文档" autocomplete="off" aria-controls="doc-results" data-doc-search>
+          <div id="doc-results" class="doc-results" aria-live="polite" hidden></div>
+          <nav class="doc-nav" aria-label="使用文档">
+            <a href="../../docs/">开始使用</a>
+<a href="../../docs/manual/">插件说明书</a>
+<a href="../../docs/capabilities/">能力目录</a>
+<a href="../../docs/models/">模型配置</a>
+<a href="../../docs/safety/">安全与隐私</a>
+<a href="../../docs/updates/">更新记录</a>
+            <details open><summary>更多与维护</summary><a href="../../docs/architecture/" aria-current="page">技术架构</a>
+<a href="../../docs/upstream/">上游同步</a>
+<a href="../../docs/roadmap/">规划与可行性</a>
+<a href="../../docs/security-policy/">完整安全政策</a>
+<a href="../../docs/attribution/">第三方来源</a>
+<a href="../../docs/license/">开源许可证</a>
+<a href="../../docs/notice/">来源声明</a></details>
+          </nav>
+        </div>
+      </details>
+    </aside>
+    <main id="main" class="doc-main">
+      <article class="doc-content"><h1 id="dsh-mediaops-架构">DSH-MediaOps 架构</h1>
+<p>DSH-MediaOps 是一个同时包含 Host、浏览器 Client 和 112 个 bundled skills 的原生 DSH 插件。对话是主界面；本地状态、外部网络和真实发布等副作用由 Host 控制。</p>
+<h2 id="总体结构">总体结构</h2>
+<pre><code class="language-text">DSH Client
+  ├─ @：选题库 / 爆款库 / 草稿 / 发布记录
+  ├─ /：五个对话工作流
+  └─ MediaOps 工作台：概览 / 选题 / 爆款 / 草稿 / 发布队列
+              │ same-origin loopback API
+              ▼
+DSH Host
+  ├─ 参数化 Agent tools + system prompt
+  ├─ 发布三类动作 + 模型运行的 tools/pre-execute 原生审批
+  ├─ MediaOpsService + schema v5 state machine
+  ├─ PublisherAdapter（账号探针、dry-run、无 shell 执行）
+  ├─ TrendService（第三方热榜、缓存、归一化）
+  ├─ MediaOpsStore（跨 Host 文件锁 + 原子 JSON）
+  └─ SkillProvider（112 个 Easel skills）
+              │
+              ▼
+冻结载荷 → 账号复核 → 平台/API/浏览器 → 已接受状态 → 只读对账 → published
+</code></pre>
+<p><code>cordis.patch.yml</code> 插入 <code>id: mediaops</code>、<code>name: dsh-mediaops</code>。Host 入口是 <code>lib/index.js</code>，浏览器入口是 <code>lib/client.js</code>；React 与 DSH 客户端服务由宿主提供。</p>
+<h2 id="host-组件">Host 组件</h2>
+<p><code>src/index.ts</code> 注册：</p>
+<ol>
+<li>bundled Skill provider；</li>
+<li>热点、资料库、草稿与发布工具；</li>
+<li><code>/api/dsh-mediaops</code> 本地 API；</li>
+<li><code>tools/pre-execute</code> 审批 hook；</li>
+<li>Agent system prompt；</li>
+<li>每五分钟运行一次的 staging janitor。</li>
+</ol>
+<p>审批 hook 对以下动作返回 <code>ask</code>：</p>
+<ul>
+<li><code>mediaops_confirm_publish(confirm=true)</code>：签发一次性发布授权，但不触网；</li>
+<li><code>mediaops_execute_publish</code>：运行真实平台 adapter；</li>
+<li><code>mediaops_record_publish_result</code>：在中断或平台已接受后人工对账回填。</li>
+<li><code>mediaops_run_model_script</code>：在可能计费或上传输入前展示 Provider、实际模型、规格与输入摘要，并把批准一次性绑定到同一个 exec。</li>
+</ul>
+<p>审批说明从 Host 中的冻结记录生成，包含平台、账号标签与身份指纹、workspace、标题、正文字符数/哈希/预览、素材的安全工作区相对路径（越界时仅 basename）/大小/哈希、定时、平台参数和 <code>payloadDigest</code>。所有展示字段会移除控制符与双向文本控制字符并限长，末尾固定重复动作与 <code>payloadDigest</code>；模型不能用自报说明替换这些字段。下游策略拒绝时保持拒绝；否则必须得到本次 DSH 原生一次性批准，拒绝、超时或当前表层无法完成审批时不会静默放行。</p>
+<h3 id="mediaopsservice">MediaOpsService</h3>
+<p>业务服务负责：</p>
+<ul>
+<li>爆款按 URL 或「平台 + 标题」合并；</li>
+<li>爆款转选题并保留 <code>sourceViralIds</code> 与来源链接；</li>
+<li>选题、草稿与跨平台关系；</li>
+<li>草稿 revision 与待发布预览失效；</li>
+<li>Host 权威 workspace、素材冻结与摘要；</li>
+<li>发布令牌、幂等键、执行租约与状态机；</li>
+<li>同一草稿 revision 的多平台 <code>partially_published</code> / <code>published</code> 汇总，避免旧回执改写新稿；</li>
+<li>过期预览与孤儿 staging 清理。</li>
+</ul>
+<p>普通保存工具不能直接写入选题/草稿的发布完成状态。只有有证据的发布结果能推进这些状态。</p>
+<h3 id="publisheradapter">PublisherAdapter</h3>
+<p>Adapter 将 7 个平台映射到固定 Python 脚本与参数数组。它不接受任意命令，不使用 shell，不把长正文放进 argv，而是传入冻结的 <code>body.md</code> 路径。环境变量采用 allowlist，并限制 Publisher stdout/stderr 大小、执行时间和终止流程；常见凭证格式会被脱敏。</p>
+<p>预检阶段先运行平台账号探针，再运行去掉 <code>--exec</code> 的同一 adapter dry-run。执行阶段再次探测账号，并要求稳定的非敏感 SHA-256 身份指纹与预览完全一致，之后才启动 Publisher 进程。</p>
+<p>平台成功退出仅说明平台接受了请求：</p>
+<div class="doc-table" tabindex="0" role="region" aria-label="数据表格"><table>
+<thead>
+<tr>
+<th>条件</th>
+<th>记录状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>小红书、抖音、快手、视频号、知乎、Bilibili 即时投稿</td>
+<td><code>submitted</code></td>
+</tr>
+<tr>
+<td>微信公众号返回草稿 <code>media_id</code></td>
+<td><code>draft_created</code></td>
+</tr>
+<tr>
+<td>Bilibili 带冻结定时时间</td>
+<td><code>scheduled</code></td>
+</tr>
+<tr>
+<td>后续只读对账取得公开内容或正式平台证据</td>
+<td><code>published</code></td>
+</tr>
+</tbody></table>
+</div><p>微信公众号不自动群发；Bilibili 定时必须至少提前 4 小时。其他受控 adapter 不接受 <code>scheduledAt</code>。</p>
+<h3 id="trendservice">TrendService</h3>
+<p>支持微博、抖音、知乎、头条、小红书、B站、百度、AI 新闻和 IT 新闻。每个平台独立尝试来源并归一化为：</p>
+<pre><code class="language-text">platform, title, url, hot, author, summary, rank, source
+</code></pre>
+<p>缓存只存在 Host 内存中。单个平台失败不掩盖其他结果；第三方热榜内容始终是不可信候选数据。</p>
+<h3 id="本地-api">本地 API</h3>
+<p>Client 通过 <code>/api/dsh-mediaops</code> 访问 Host。HTTP 边界：</p>
+<ul>
+<li>仅允许 loopback 地址和 localhost/loopback Host；</li>
+<li>浏览器请求必须 same-origin，拒绝 cross-site；</li>
+<li>JSON 请求体上限 1 MiB；</li>
+<li>响应使用 JSON、<code>Cache-Control: no-store</code> 和 <code>X-Content-Type-Options: nosniff</code>；</li>
+<li>API 不暴露确认令牌摘要、执行租约 ID、完整正文或冻结文件路径。</li>
+<li>多模态模型接口只返回 schema、非秘密值和每个秘密字段的 <code>configured</code> 布尔值；API Key 没有读取接口。</li>
+</ul>
+<p>发布列表使用最小化的 <code>PublicationView</code>，只包含安全展示所需的状态、平台、标题、账号标签、正文摘要与哈希、素材数量、冻结载荷摘要和结果；账号身份指纹、workspace、素材来源、平台私有参数、幂等键与冻结文件路径不会经本地 API 暴露。</p>
+<h2 id="client">Client</h2>
+<p>Client 只负责交互和展示，不持有权威状态，也不直接访问状态文件或发布平台。</p>
+<h3 id="-引用"><code>@</code> 引用</h3>
+<p><code>mediaops-library</code> 通过统一 references 查询搜索选题库、爆款库、草稿和发布记录，一次查询只读取 state 一次。输入框保存稳定引用；消息提交时才由 Host 序列化为 <code>&lt;mediaops_reference&gt;</code>：</p>
+<ul>
+<li>所有字段 XML 转义；</li>
+<li>每条引用受 <code>maxReferenceChars</code> 限制；</li>
+<li>带 provenance 声明，明确它是资料而非指令；</li>
+<li>被删除或损坏的引用显式报错。</li>
+</ul>
+<p>只有从 DSH <code>@</code> 候选中选择的条目才具有该结构化引用身份；手工键入或粘贴形似 <code>@标题</code> 的普通文本不会被提升为资料库引用。</p>
+<h3 id="-工作流"><code>/</code> 工作流</h3>
+<p><code>mediaops-actions</code> 提供热点发现、爆款转选题、基于选题创作、审核发布和每日盘点五个自然语言模板。模板只启动对话，不绕过工具验证或审批。</p>
+<h3 id="工作台">工作台</h3>
+<p>同一 <code>MediaOpsWorkbench</code> 挂载到 <code>conversation.view</code>、<code>settings.section</code> 和 <code>sidebar.right.pane.tab</code>。右侧栏通过 <code>sidebarRightTabs</code> 注册 <code>kind: mediaops</code> 的页面类型，与渲染槽位共用稳定 ID <code>dsh-mediaops/rightbar</code>。工作台展示概览、选题、爆款、草稿和发布队列；复杂研究、创作和真实发布仍走对话工具。</p>
+<p>独立的 <code>ModelSettings</code> 挂载到第二个 <code>settings.section</code>。它通过 same-origin API 编辑图像、视频、音乐和云端语音四类模型 Provider；密码输入只用于本次 replace 请求，保存成功即从组件状态清除，Host 响应不会回显秘密。每次运行只使用该类别明确选中的默认 Provider，不做自动故障转移；当前没有受管 ASR/语音转写模型组。</p>
+<h3 id="多模态模型-host-边界">多模态模型 Host 边界</h3>
+<p><code>ModelConfigStore</code> 把多模态配置放在 data root 的独立 <code>secrets/multimodal-models.json</code>，而不是业务 <code>state.json</code>。秘密文件以 <code>0600</code> 原子提交，父目录为 <code>0700</code>；读取和写入拒绝符号链接。浏览器更新协议要求秘密逐字段显式 <code>keep</code> / <code>replace</code> / <code>clear</code>。</p>
+<p><code>ModelScriptRunner</code> 是 bundled media skills 使用凭证的唯一受控入口：脚本、子命令、flag 和子进程 env 都是 allowlist；输入受 workspace realpath 约束，输出根用 <code>lstat + realpath</code> 证明是当前 workspace 的真实 <code>outputs/</code> 目录；运行期间禁止脚本自动加载 workspace <code>.env</code>。费用审批通过 <code>WeakMap</code> 与同一个 DSH exec 对象绑定并一次性消费；执行前重新计算参数、Provider、模型、endpoint、私网策略、环境和 executable 指纹，本地输入复制到 <code>0700</code> staging 后按批准的大小/SHA-256 复核，脚本只读取 <code>0400</code> snapshot。Host 还把 workspace 与 <code>outputs/</code> 的 device/inode 身份和唯一 run ID 注入子进程，并在 spawn 前持久化非秘密 v2 pending 记录。真实生成使用 <code>shell: false</code>，输出在回到模型前按实际 secret 和通用凭证字段双重脱敏。</p>
+<p>受控模型 HTTP 不继承环境代理。公网 HTTP 始终拒绝；只有显式启用私网访问且全部解析结果属于 loopback、RFC1918 或 IPv6 ULA 时，私网 HTTP 才能使用。每个请求只使用一次 DNS 解析得到的已验证 IP 快照建立连接，同时保留原 hostname 的 Host、HTTPS SNI 与证书校验；redirect 对新目标重新解析并固定。Provider 级私网开关只授权其 API endpoint，不授权供应商返回的媒体地址；媒体下载始终要求公网 HTTPS 目标，metadata、链路本地和其他保留地址始终拒绝。</p>
+<p>四个受管 CLI 都在任何 Provider 请求前，以 <code>O_NOFOLLOW</code> 和逐级 <code>dir_fd</code> 打开 Host 批准的 workspace/<code>outputs/</code>，核对注入的 device/inode，并在整个请求、轮询和下载期间持有最终父目录描述符。run-labelled partial 的创建、inode 复核、<code>fsync</code>、原子替换和删除都相对这个描述符完成；受管语音转码把 FFmpeg 指向预先打开、可 seek 的普通文件描述符。普通异常与 SIGTERM 由 Python 清理；模型子进程被 SIGKILL、Host 与已批准目录身份保持正常时，Host <code>finally</code> 按 run ID 精确回收。Host 本身崩溃后，janitor 只在可信 v2 pending 记录明确证明 owner 已死亡且两个目录 inode 仍匹配时恢复；活跃或身份未知的 owner 不会被清理，v1/截断/畸形记录也保守保留。该策略优先避免跨 Host 误删，因此不承诺清除无法安全归属的残留。</p>
+<h2 id="bundled-skills">Bundled skills</h2>
+<p>112 个 Easel Skill 位于 <code>skills/openclaw/</code>，共享脚本和资料位于 <code>skills/shared/</code>。Provider 惰性读取定义，用户/项目的同名 Skill 以更高 rank 覆写 bundled 版本。</p>
+<p>运行时约定：</p>
+<ul>
+<li><code>resourceBase</code> 只读，用于代码、references 与 assets；</li>
+<li>相对 Skill 路径由 provider 展开为安装包中的绝对路径；</li>
+<li>一般业务脚本在当前对话 workspace 运行，产物写 <code>outputs/</code>；</li>
+<li><code>DSH_MEDIAOPS_DATA_DIR</code> 指向 Host 解析后的 data root；</li>
+<li>Cookie、Token、配置和浏览器 profile 只能写 data root，不能写 npm 安装目录；</li>
+<li>发布层中 13 个带外部写入或派发路径的 Host-only Skill，其 <code>modelInvocable</code> 与 <code>userInvocable</code> 都为 <code>false</code>；7 个只读/生成型 Skill 保持可用。平台 Publisher 脚本只能由 Host adapter 使用，不能从 Skill 文本自行添加 <code>--exec</code>。</li>
+</ul>
+<p>上游来源中的旧根目录与旧 profile 约定仅是历史背景；DSH-MediaOps runtime 约定优先。</p>
+<h2 id="路径与持久化">路径与持久化</h2>
+<h3 id="workspace">Workspace</h3>
+<p>普通 bundled Skill 按下列顺序解析 workspace：</p>
+<ol>
+<li><code>DSH_MEDIAOPS_WORKSPACE</code>；</li>
+<li><code>EASEL_ROOT</code>（上游兼容）；</li>
+<li>当前进程 <code>cwd</code>。</li>
+</ol>
+<p>真实发布使用当前 DSH Agent 会话的绝对 <code>session.header.cwd</code>，而不是模型参数。预检对该路径做 <code>realpath</code>，要求发布素材是 workspace 内的普通文件、绝对路径且非符号链接。</p>
+<h3 id="data-root">Data root</h3>
+<ol>
+<li><code>config.dataDir</code>；</li>
+<li><code>DSH_MEDIAOPS_DATA_DIR</code>；</li>
+<li><code>$DSH_HOME/mediaops</code>；</li>
+<li><code>~/.dsh/mediaops</code>。</li>
+</ol>
+<p>data root 包含 schema v5 <code>state.json</code>、<code>staging/</code>、<code>preflight/</code>、<code>wechat-publisher.yaml</code>、<code>credentials/</code> 和 <code>browser-profiles/</code>。插件尽力保持目录 <code>0700</code>、文件 <code>0600</code>。</p>
+<h3 id="schema-v5">Schema v5</h3>
+<div class="doc-table" tabindex="0" role="region" aria-label="数据表格"><table>
+<thead>
+<tr>
+<th>实体</th>
+<th>关键关系</th>
+<th>状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>Topic</code></td>
+<td><code>sourceViralIds</code>、参考资料</td>
+<td><code>idea → researching → planned → drafting → ready → published</code>，或 <code>archived</code></td>
+</tr>
+<tr>
+<td><code>ViralItem</code></td>
+<td>来源、URL、热度、拆解</td>
+<td>用 <code>firstSeenAt</code> / <code>lastSeenAt</code> 跟踪重复发现</td>
+</tr>
+<tr>
+<td><code>Draft</code></td>
+<td>revision、<code>topicId</code>、多个平台、素材</td>
+<td><code>draft → review → ready → partially_published → published</code>，或 <code>archived</code></td>
+</tr>
+<tr>
+<td><code>Publication</code></td>
+<td>草稿 revision、平台、快照、digest、账号身份、租约</td>
+<td><code>preview / confirmed / publishing / submitted / draft_created / scheduled / published / failed / cancelled</code></td>
+</tr>
+</tbody></table>
+</div><p>Store 每次读取都校验深层结构、状态、ID 唯一性和 snapshot digest。mutation 先取得跨 Host 文件锁、重新读取最新文件、在副本上校验，再通过唯一临时文件、fsync 与 rename 提交；状态文件上限 16 MiB。它仍是单机 JSON store，不是多用户数据库，也没有字段级加密或云同步。</p>
+<h3 id="检索索引与-store-迁移预案">检索索引与 store 迁移预案</h3>
+<p>当前线性扫描适合小型个人库，但仅增加内存倒排索引不能解决 <code>state.json</code> 每次读取仍需完整读取、解析和深层校验的问题。以下任一条件持续出现时启动迁移评审：任一集合超过 2,000 条、文件超过 8 MiB、搜索/列表 p95 超过 100 ms，或一次 mutation p95 超过 250 ms。阈值是运维信号，不会在后台静默切换存储。</p>
+<p>迁移前先在 service 与持久化之间收敛 <code>MediaOpsRepository</code> seam，包含事务 mutation、按 ID 读取、分页列表、资料库搜索和发布幂等查询；业务层不感知 JSON/SQLite。短期可按 state 文件的 mtime/size/generation 建只读内存索引来减少重复扫描，但文件变化时必须整体失效，并明确它不是长期容量方案。</p>
+<p>首选持久层为 data root 内单机 SQLite（WAL），建议索引：</p>
+<ul>
+<li>topic：<code>status, updatedAt</code>，标题/角度/摘要的 FTS；</li>
+<li>viral：<code>platform, lastSeenAt</code>，规范化 URL 唯一键，标题/摘要的 FTS；</li>
+<li>draft：<code>status, updatedAt</code>、<code>topicId</code>；</li>
+<li>publication：<code>platform, status, createdAt</code>、全局唯一 <code>idempotencyKey</code>，以及 <code>draftId, draftRevision</code>。</li>
+</ul>
+<p>正文、冻结路径、账号身份和发布私有参数不进入不必要的 FTS 或日志；数据库、WAL 和备份继续位于 <code>0700</code> data root，文件尽力保持 <code>0600</code>。</p>
+<p>建议 schema v6 迁移步骤：</p>
+<ol>
+<li>取得现有跨 Host store 锁，停止新 mutation；完整校验 v5，并创建带时间戳与 SHA-256 的只读 <code>state.v5.backup.json</code>，fsync 文件和目录。</li>
+<li>在临时 SQLite 文件的单一事务中导入四类实体，保留所有 ID、时间、revision、snapshot digest、已接受/终态以及未完成发布租约；不把不确定发布重置成可重试。</li>
+<li>对照实体数量、ID 集、关系、状态分布和每个 publication payload digest；在新 repository 上重跑 schema/invariant 校验与代表性查询。</li>
+<li>先 fsync 数据库与 WAL，再用 data-root 内原子 marker/config rename 切换 repository；禁止跨文件系统 rename，也不做容易分叉的长期双写。</li>
+<li>切换后保留 v5 备份且不自动删除。首次 v6 写入前可直接回滚 marker；已有 v6 写入后只能用经过校验的反向导出或停机恢复备份，并明确丢失窗口。</li>
+</ol>
+<p>任何迁移失败都应在切换前终止并保留原 <code>state.json</code> 为唯一权威源。迁移工具必须支持 <code>--dry-run</code>、生成校验报告，并在故障注入测试中覆盖崩溃、磁盘不足、重复运行和回滚。</p>
+<p>v1-v4 状态会迁移到 v5。<code>published</code>、<code>failed</code>、<code>cancelled</code> 以及已接受的 <code>submitted</code>、<code>draft_created</code>、<code>scheduled</code> 保留；旧 <code>preview</code>、<code>confirmed</code>、<code>publishing</code> 因缺少完整可信冻结信息而变为 <code>cancelled</code>，旧令牌和执行租约被清空。</p>
+<h2 id="不可变发布载荷">不可变发布载荷</h2>
+<p><code>mediaops_prepare_publish</code> 的 workspace 来自 DSH 会话。它先读取草稿 revision，完成账号探针/dry-run，再冻结：</p>
+<ul>
+<li>草稿 ID、revision 与 <code>updatedAt</code>；</li>
+<li>workspace realpath；</li>
+<li>标题和完整正文；</li>
+<li>冻结 <code>body.md</code> 与 SHA-256；</li>
+<li>每个素材的来源路径、冻结路径、大小和 SHA-256；</li>
+<li>平台、账号标签和稳定身份指纹；</li>
+<li>定时、Host 预检证据和白名单化的 <code>publisherOptions</code>；</li>
+<li>稳定 JSON 的 SHA-256 <code>payloadDigest</code>。</li>
+</ul>
+<p>素材限制：绝对本地路径、workspace 内、普通文件、非 symlink；最多 20 个，单个不超过 2 GiB、单次合计不超过 4 GiB，并保留 256 MiB 空间。跨预览 staging 由跨进程目录锁串行分配，总量上限 6 GiB；staging 根目录及条目拒绝 symlink。复制后会复核源文件 inode/大小/mtime，执行前再复核冻结文件大小和哈希。</p>
+<p>微信公众号正文只接受可枚举的本地 Markdown 图片 <code>![说明](路径)</code>；远程/data URI、引用式图片和原始 HTML <code>&lt;img&gt;</code> 被拒绝。正文图片会一并冻结并改写。内置 theme 名称、author 和 theme 文件 SHA-256 也进入快照；执行时 theme 文件摘要变化会停止发布。</p>
+<h2 id="发布状态机">发布状态机</h2>
+<pre><code class="language-text">ready / partially_published draft
+    │ Host account probe + fixed argv dry-run
+    ▼
+preview（30 分钟令牌；完整分页预览）
+    │ 用户明确确认 + DSH 原生审批
+    ▼
+confirmed
+    │ DSH 再审批 + 冻结哈希复核 + 执行租约 + 账号身份复核
+    ▼
+publishing
+    ├─ publisher 未启动且有明确错误 ─────────────► failed
+    ├─ 平台接受 ─► submitted / draft_created / scheduled
+    │                 └─ 只读平台证据 + 原生审批 ─► published
+    └─ 启动后超时/中断/非零/回执落盘失败 ──────► publishing（待对账）
+
+preview / confirmed ─► cancelled
+</code></pre>
+<h3 id="1-预检与冻结">1. 预检与冻结</h3>
+<p>浏览器平台的 <code>accountKey</code> 必须与 <code>whoami</code> 返回名称精确一致；微信公众号使用 YAML account key。探针必须返回 64 位非敏感身份指纹。Host dry-run 不能带 <code>--exec</code>，预检期间草稿 revision 变化会使准备失败。</p>
+<p>同一草稿/平台的新 preview 会取消旧 preview；存在 <code>confirmed</code>、<code>publishing</code>、已接受或 <code>published</code> 计划时不允许再创建同平台计划。发布所用正文与素材来自冻结副本，不会因原草稿后续修改而变化。</p>
+<h3 id="2-确认授权">2. 确认授权</h3>
+<p>用户必须看到预览（长正文分页读完）并明确授权。<code>mediaops_confirm_publish</code> 校验明文一次性令牌的 hash、<code>payloadDigest</code> 与全局唯一幂等键，然后在原生审批后将 <code>preview</code> 变为 <code>confirmed</code>。确认本身不触网，也不返回完整执行快照。</p>
+<p>重复相同幂等键只返回无副作用结果；不同键或跨计划复用会拒绝。<code>preview</code> 与 <code>confirmed</code> 可取消，过期后 janitor 会取消并删除 staging。</p>
+<h3 id="3-执行">3. 执行</h3>
+<p><code>mediaops_execute_publish</code> 只能接受 publication ID 和 digest。原生审批通过后，Host：</p>
+<ol>
+<li>校验 snapshot digest；</li>
+<li>校验所有冻结路径、正文和素材哈希；</li>
+<li>检查同平台是否已有任何 <code>publishing</code> 计划；若有则阻止新执行，直到人工对账写入终态；</li>
+<li>签发 40 分钟 Host-only execution lease；</li>
+<li>再次查询账号并比较身份指纹；</li>
+<li>以固定 argv、<code>shell: false</code> 启动 adapter。</li>
+</ol>
+<p>同一计划只能启动一次；同一平台有任何 <code>publishing</code> 计划时不能启动另一计划。当前计划的有效租约期间也不能并行执行或人工回填；租约结束后仍须先人工对账到终态，不能盲目重发。</p>
+<h3 id="4-已接受恢复与人工对账">4. 已接受、恢复与人工对账</h3>
+<p><code>submitted</code>、<code>draft_created</code>、<code>scheduled</code> 表示平台已接受，不是失败，也不允许直接重发。执行进程启动后出现超时、中断、非零退出或本地回执持久化失败时，保持 <code>publishing</code>；这避免把「可能已经发出」误判为失败后重复发布。</p>
+<p><code>mediaops_recover_publish</code> 只返回对账说明和安全元数据，绝不重跑 Publisher。执行租约仍有效时只能等待；租约结束后，按账号身份、标题、时间、幂等键与素材哈希在平台只读查询。人工回填 <code>published</code>/<code>failed</code> 需要原生审批：成功需官方域名链接或结果证据；失败需错误和明确证明未产生内容的证据。已接受状态只能推进到 <code>published</code>。</p>
+<h2 id="信任边界">信任边界</h2>
+<div class="doc-table" tabindex="0" role="region" aria-label="数据表格"><table>
+<thead>
+<tr>
+<th>边界</th>
+<th>控制</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Browser Client → Host</td>
+<td>loopback、Host/same-origin、cross-site 拒绝、请求体上限、no-store</td>
+</tr>
+<tr>
+<td>选题/爆款/趋势/正文/平台输出 → 模型</td>
+<td>全部视为不可信数据；XML 转义、provenance、字符上限、显式错误</td>
+</tr>
+<tr>
+<td>Agent → 状态</td>
+<td>仅参数化工具；服务层校验；普通工具不能伪造发布完成</td>
+</tr>
+<tr>
+<td>Agent → workspace</td>
+<td>发布 workspace 由当前 DSH 会话提供；素材 realpath containment</td>
+</tr>
+<tr>
+<td>Agent → 发布平台</td>
+<td>Host-only 写入 Skill 不可直接调用；冻结快照、两次审批、固定 argv、账号复核、执行租约</td>
+</tr>
+<tr>
+<td>平台 → 结果状态</td>
+<td>accepted 与 published 分离；官方域名/回执证据；不确定时只读对账，禁止盲重试</td>
+</tr>
+<tr>
+<td>Bundled Skill → 文件</td>
+<td>安装目录只读；业务产物进 workspace，秘密进 data root</td>
+</tr>
+<tr>
+<td>本地磁盘</td>
+<td><code>0700/0600</code> 最佳努力；明文数据由 OS 加密、权限与备份保护</td>
+</tr>
+</tbody></table>
+</div><p>这些控制不能替代平台权限、验证码、审核、内容合规或服务条款。账号身份 hash 与 <code>payloadDigest</code> 不是签名；日志脱敏也不能替代秘密管理。</p>
+<h2 id="配置优先级">配置优先级</h2>
+<p>DSH 从低到高组合 profile bundle、profile patch、DSH home patch 和命令行 <code>--patch</code>。后层按 <code>id</code> 覆盖前层；<code>mediaops.config</code> 整体替换而非深度合并，因此覆写时应重述全部需要保留的字段。</p>
+<pre><code class="language-sh">dsh --profile desktop --dump-config
+</code></pre>
+<h2 id="分发与许可边界">分发与许可边界</h2>
+<p>GitHub 仓库：<a href="https://github.com/Tangweiwei227/DSH-MediaOps" target="_blank" rel="noreferrer">Tangweiwei227/DSH-MediaOps</a>。安装包包含 Host/Client 构建产物、112 个 Skill、共享资源、文档和来源声明；用户产物与秘密位于 workspace/data root，不写入版本化包。</p>
+<p>项目不宣称已进入 DSH 插件市场。Easel Skill 的归属、第三方依赖和待核实许可证见 <code>NOTICE</code>、<code>THIRD_PARTY_NOTICES.md</code> 与各 Skill 的 <code>EASEL-META.md</code>。</p>
+</article>
+      <nav class="doc-pager" aria-label="相邻文档"><a href="../../docs/updates/"><span aria-hidden="true">←</span> 更新记录</a><a href="../../docs/upstream/">上游同步 <span aria-hidden="true">→</span></a></nav>
+      <footer class="doc-footer"><a href="../../">DSH-MediaOps</a><span>0.2.x</span></footer>
+    </main>
+    <aside class="doc-toc" aria-label="本页目录"><p>本页内容</p><nav><a href="#总体结构">总体结构</a>
+<a href="#host-组件">Host 组件</a>
+<a href="#client">Client</a>
+<a href="#bundled-skills">Bundled skills</a>
+<a href="#路径与持久化">路径与持久化</a>
+<a href="#不可变发布载荷">不可变发布载荷</a>
+<a href="#发布状态机">发布状态机</a>
+<a href="#信任边界">信任边界</a>
+<a href="#配置优先级">配置优先级</a>
+<a href="#分发与许可边界">分发与许可边界</a></nav></aside>
+  </div>
+  <script src="../../docs/search-index.js" defer></script>
+  <script src="../../docs.js" defer></script>
+</body>
+</html>

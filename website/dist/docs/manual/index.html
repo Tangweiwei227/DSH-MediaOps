@@ -1,0 +1,824 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#08111f">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="description" content="资料引用、工作台、创作与发布的完整使用说明。">
+  <meta name="docs-source" content="96b76bcb590844fdb3ee7290b49af14b5c069c15a7c2a3cf269d72a772b147fc">
+  <title>插件说明书 · MediaOps 使用文档</title>
+  <link rel="canonical" href="https://pages.xiaotangtevin.top/DSH-MediaOps/docs/manual/">
+  <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../styles.css">
+  <link rel="stylesheet" href="../../docs.css">
+</head>
+<body class="docs-page" data-site-root="../../">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="docs-header">
+      <a class="brand" href="../../" aria-label="DSH-MediaOps 首页">
+        <span class="brand-mark" aria-hidden="true"><span>D</span><span>M</span></span>
+        <span class="brand-copy"><strong>DSH-MediaOps</strong></span>
+      </a>
+      <a class="docs-home" href="../../">返回官网 <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+  <div class="docs-layout">
+    <aside class="docs-sidebar">
+      <details open data-doc-menu>
+        <summary>文档导航</summary>
+        <div class="docs-menu-body">
+          <label class="sr-only" for="doc-search">搜索文档</label>
+          <input id="doc-search" type="search" placeholder="搜索文档" autocomplete="off" aria-controls="doc-results" data-doc-search>
+          <div id="doc-results" class="doc-results" aria-live="polite" hidden></div>
+          <nav class="doc-nav" aria-label="使用文档">
+            <a href="../../docs/">开始使用</a>
+<a href="../../docs/manual/" aria-current="page">插件说明书</a>
+<a href="../../docs/capabilities/">能力目录</a>
+<a href="../../docs/models/">模型配置</a>
+<a href="../../docs/safety/">安全与隐私</a>
+<a href="../../docs/updates/">更新记录</a>
+            <details><summary>更多与维护</summary><a href="../../docs/architecture/">技术架构</a>
+<a href="../../docs/upstream/">上游同步</a>
+<a href="../../docs/roadmap/">规划与可行性</a>
+<a href="../../docs/security-policy/">完整安全政策</a>
+<a href="../../docs/attribution/">第三方来源</a>
+<a href="../../docs/license/">开源许可证</a>
+<a href="../../docs/notice/">来源声明</a></details>
+          </nav>
+        </div>
+      </details>
+    </aside>
+    <main id="main" class="doc-main">
+      <article class="doc-content"><h1 id="dsh-mediaops-插件说明书">DSH-MediaOps 插件说明书</h1>
+<blockquote>
+<p>适用版本：0.2.x
+项目主页：<a href="https://github.com/Tangweiwei227/DSH-MediaOps" target="_blank" rel="noreferrer">github.com/Tangweiwei227/DSH-MediaOps</a>
+官网：<a href="https://pages.xiaotangtevin.top/DSH-MediaOps/">DSH-MediaOps</a> · <a href="https://pages.xiaotangtevin.top/DSH-MediaOps/docs/">在线文档</a></p>
+</blockquote>
+<p>DSH-MediaOps 是一个原生 DeepSeek Harness（DSH）插件。它把趋势发现、爆款收藏、选题管理、内容创作、多模态生产、跨平台发布和发布后复盘组织成一个可追踪的本地工作流，并把高频入口放回对话框：用 <code>@</code> 引用业务资料，用 <code>/</code> 启动固定流程，用自然语言决定下一步。</p>
+<p>本说明书面向新媒体运营、自媒体博主和维护人员。第一次使用可先读<a href="../../docs/">开始使用</a>，完成一篇草稿；需要时再查本手册的模型、发布和故障排查章节。</p>
+<p>你可以直接说“给我 3 个适合账号的选题”“把这篇长文改成小红书图文”“盘点今天待发布的内容”。不必记住 Skill 名称或工具参数。本文中的 Host 指 DSH 在本机运行的执行端，Skill 指一项可复用的内容工作能力。</p>
+<h2 id="目录">目录</h2>
+<ul>
+<li><a href="#1-能做什么">1. 能做什么</a></li>
+<li><a href="#2-五分钟开始">2. 五分钟开始</a></li>
+<li><a href="#3-核心概念">3. 核心概念</a></li>
+<li><a href="#4-对话即工作台">4. 对话即工作台</a></li>
+<li><a href="#5-mediaops-工作台">5. MediaOps 工作台</a></li>
+<li><a href="#6-标准运营流程">6. 标准运营流程</a></li>
+<li><a href="#7-多模态模型配置">7. 多模态模型配置</a></li>
+<li><a href="#8-skills-能力目录与路由">8. Skills 能力目录与路由</a></li>
+<li><a href="#9-发布连接器">9. 发布连接器</a></li>
+<li><a href="#10-发布安全协议">10. 发布安全协议</a></li>
+<li><a href="#11-数据目录备份与迁移">11. 数据目录、备份与迁移</a></li>
+<li><a href="#12-插件配置">12. 插件配置</a></li>
+<li><a href="#13-权限安全与合规">13. 权限、安全与合规</a></li>
+<li><a href="#14-故障排查">14. 故障排查</a></li>
+<li><a href="#15-升级卸载与开发">15. 升级、卸载与开发</a></li>
+<li><a href="#16-当前限制与路线图">16. 当前限制与路线图</a></li>
+</ul>
+<h2 id="1-能做什么">1. 能做什么</h2>
+<p>DSH-MediaOps 提供六层媒体运营能力：</p>
+<div class="doc-table" tabindex="0" role="region" aria-label="数据表格"><table>
+<thead>
+<tr>
+<th>能力层</th>
+<th align="right">Skills</th>
+<th>典型任务</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>通用</td>
+<td align="right">6</td>
+<td>素材、模板、资料、批处理</td>
+</tr>
+<tr>
+<td>发现</td>
+<td align="right">9</td>
+<td>热点、竞品、内容缺口、UGC、算法变化</td>
+</tr>
+<tr>
+<td>策划</td>
+<td align="right">16</td>
+<td>定位、受众、选题、内容矩阵、排期、活动</td>
+</tr>
+<tr>
+<td>创作</td>
+<td align="right">50</td>
+<td>文案、图片、卡片、音频、视频、短剧、复合内容</td>
+</tr>
+<tr>
+<td>发布</td>
+<td align="right">20</td>
+<td>平台适配、质量检查、风险扫描、发布、互动</td>
+</tr>
+<tr>
+<td>归因</td>
+<td align="right">11</td>
+<td>数据记录、评论洞察、复盘、ROI、策略迭代</td>
+</tr>
+<tr>
+<td>合计</td>
+<td align="right"><strong>112</strong></td>
+<td>从发现到归因的完整闭环</td>
+</tr>
+</tbody></table>
+</div><p>插件提供的核心产品能力包括：</p>
+<ul>
+<li>在对话中跨平台拉取热点，并逐个平台保留结果或失败信息；</li>
+<li>将热点或外部案例保存到爆款库，再整理成有来源关系的选题；</li>
+<li>用 <code>@</code> 搜索并引用选题、爆款等本地记录；</li>
+<li>基于选题生成并保存跨平台草稿；</li>
+<li>为图像、视频、音乐和云端语音 Skill 统一配置模型与 API；</li>
+<li>通过 Host 受控连接器向 7 个平台提交内容；</li>
+<li>对发布载荷做不可变冻结、两次原生审批和结果对账；</li>
+<li>在 MediaOps 工作台查看概览、资料库、草稿、发布记录和模型状态。</li>
+</ul>
+<p>DSH-MediaOps 面向单机个人工作流。它不是多人 SaaS、云端数据库、平台风控绕过工具，也不会保证第三方平台审核通过。</p>
+<h2 id="2-五分钟开始">2. 五分钟开始</h2>
+<h3 id="21-环境要求">2.1 环境要求</h3>
+<ul>
+<li>可运行的 DSH Desktop / Web 或 <code>dsh</code> CLI；插件声明的 DSH 兼容范围为 <code>&gt;=0.2.2-rc.3 &lt;0.3.0</code>，旧 0.1.x 需要先升级；</li>
+<li>Node.js 22.19+ 或 24+；</li>
+<li>可从 <code>PATH</code> 找到的 pnpm，建议使用仓库声明的 pnpm 11.7.x；</li>
+<li>需要运行具体 Skill 时，再安装该 Skill 声明的 Python、FFmpeg、Playwright 或第三方工具。</li>
+</ul>
+<p>检查基础环境：</p>
+<pre><code class="language-sh">node --version
+pnpm --version
+dsh --version
+</code></pre>
+<h3 id="22-安装">2.2 安装</h3>
+<p>从 GitHub 安装到 DSH Desktop profile：</p>
+<pre><code class="language-sh">dsh plugin --profile desktop add github:Tangweiwei227/DSH-MediaOps
+</code></pre>
+<p>安装命令中的 <code>desktop</code> 是使用界面对应的 profile。使用 DSH Web 时将它替换为 <code>web</code>；自定义 profile 使用实际名称。插件只在安装到的 profile 生效。</p>
+<p>安装完成后完全退出并重启 DSH Desktop；Web 用户重启对应 DSH 服务并刷新页面。仅关闭窗口但保留后台进程，可能不会重新加载 Host 插件。</p>
+<h3 id="23-验证">2.3 验证</h3>
+<p>重新进入任意对话后，依次检查：</p>
+<ol>
+<li>对话视图出现 <code>MediaOps</code> 工作台入口；也可在 DSH 右侧栏的页面入口中选择 <code>MediaOps</code>，边聊天边查看资料；</li>
+<li>输入框键入 <code>@</code>，可以搜索选题库、爆款库、草稿库和发布记录四类资料；</li>
+<li>输入框键入 <code>/</code>，可以看到 MediaOps 快捷工作流；</li>
+<li>DSH 设置页出现 MediaOps 区域；</li>
+<li>发送「列出 MediaOps 当前能力和资料库概览」，Agent 能调用只读工具并返回结果。</li>
+</ol>
+<p>如果入口缺失，先看<a href="#141-插件未加载或看不到-mediaops-入口">插件未加载</a>。</p>
+<h3 id="24-第一个闭环">2.4 第一个闭环</h3>
+<p>依次发送：</p>
+<pre><code class="language-text">拉取今天微博、抖音和小红书的热点，每个平台 10 条；按与我的账号定位匹配度排序，先不要入库。
+</code></pre>
+<pre><code class="language-text">把刚才第 2 和第 5 条收进爆款库，补充钩子、受众、结构和可复用点。
+</code></pre>
+<pre><code class="language-text">把第 2 条爆款整理成 3 个差异化选题，先展示，等我选择后再入库。
+</code></pre>
+<p>入库后，在输入框键入 <code>@</code> 选择该选题，然后发送：</p>
+<pre><code class="language-text">基于这个选题写一版小红书图文稿，做质量检查，保存为 ready 草稿，但不要发布。
+</code></pre>
+<p>“不要入库”“不要发布”是明确约束。工具没有返回写入成功前，Agent 不应声称已经完成入库或发布。</p>
+<h2 id="3-核心概念">3. 核心概念</h2>
+<h3 id="31-爆款">3.1 爆款</h3>
+<p>爆款是值得复用或研究的外部案例。记录可以包含平台、链接、作者、热度、摘要、拆解笔记和标签。外部来源可能过期、删除或改变，因此链接只是来源信息，不是永久快照。</p>
+<h3 id="32-选题">3.2 选题</h3>
+<p>选题是可用于你自己的内容方向。它可以由爆款整理而来，也可以直接创建。选题保留标题、角度、摘要、正文素材、平台、标签、状态和来源引用。</p>
+<h3 id="33-草稿">3.3 草稿</h3>
+<p>草稿是面向一个或多个平台的待审内容。典型状态包括普通草稿与 <code>ready</code>。只有 <code>ready</code> 草稿可以进入受控发布准备；内容改版会增加 revision，旧 revision 的发布回执不会误改新稿状态。</p>
+<h3 id="34-发布记录">3.4 发布记录</h3>
+<p>每个平台对应独立发布记录，保留账号身份、载荷摘要、审批状态、执行结果和可核验证据。需要特别区分：</p>
+<ul>
+<li><code>submitted</code>：平台已接受提交，不代表已经公开；</li>
+<li><code>draft_created</code>：已创建到平台草稿箱；</li>
+<li><code>scheduled</code>：平台已接受定时计划；</li>
+<li><code>published</code>：已有可核验链接或回执证明内容已公开；</li>
+<li><code>publishing</code>：执行已启动但结果仍不确定，禁止直接重发；</li>
+<li><code>failed</code>：只有明确证据表明未产生内容时才使用。</li>
+</ul>
+<h3 id="35-workspace-root-与-data-root">3.5 Workspace root 与 data root</h3>
+<ul>
+<li><strong>Workspace root</strong>：当前对话的业务工作区。生成的文章、图片、音视频等产物写到这里；真实发布只接受这个目录内的普通文件。</li>
+<li><strong>Data root</strong>：插件持久化状态、模型密钥、浏览器登录态、平台凭证与冻结发布载荷的位置。它不应位于 Git 仓库中。</li>
+</ul>
+<p>二者不能混用。尤其不要把模型 API Key、Cookie 或浏览器 profile 放进业务工作区。</p>
+<h2 id="4-对话即工作台">4. 对话即工作台</h2>
+<h3 id="41-使用--引用资料">4.1 使用 <code>@</code> 引用资料</h3>
+<p>键入 <code>@</code> 后，可以统一搜索选题库、爆款库、草稿库和发布记录。选择实际候选条目后再发送消息；草稿引用包含受长度限制的正文，发布记录只带脱敏后的状态与结果。被选中的条目保存的是“资料类型 + 稳定 ID + 展示名称”，不是简单粘贴一段标题。</p>
+<p>消息真正提交时，客户端才向 Host 读取记录，并序列化成：</p>
+<ul>
+<li>有固定来源声明；</li>
+<li>有字符数上限；</li>
+<li>对 XML 特殊字符转义；</li>
+<li>明确标注为不可信资料而不是系统指令；</li>
+<li>必要时带截断标记。</li>
+</ul>
+<p>因此，手工键入 <code>@某标题</code> 或从剪贴板粘贴类似文字，不会自动变成结构化引用。</p>
+<p>推荐表达：</p>
+<pre><code class="language-text">用 @选题库 中我刚选择的资料写 3 个标题，只借用核心矛盾，不复刻原文结构。
+</code></pre>
+<pre><code class="language-text">比较 @爆款库 的这两条案例，找出共同钩子，再给出一个不相似的替代叙事。
+</code></pre>
+<h3 id="42-使用--启动固定工作流">4.2 使用 <code>/</code> 启动固定工作流</h3>
+<p>当前提供五个高频工作流：</p>
+<div class="doc-table" tabindex="0" role="region" aria-label="数据表格"><table>
+<thead>
+<tr>
+<th>快捷工作流</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>拉取今日爆款</td>
+<td>指定平台、数量、筛选标准后读取趋势</td>
+</tr>
+<tr>
+<td>爆款整理成选题</td>
+<td>分析已有案例并生成差异化选题</td>
+</tr>
+<tr>
+<td>基于选题创作</td>
+<td>引用选题后生成平台稿件或多模态内容</td>
+</tr>
+<tr>
+<td>审核并发布</td>
+<td>质量检查、预览冻结、确认和发布</td>
+</tr>
+<tr>
+<td>今日内容盘点</td>
+<td>查看草稿、发布队列和待处理事项</td>
+</tr>
+</tbody></table>
+</div><p>快捷工作流只是结构化起点，不代表自动授权外部操作。你仍然可以追加限制，例如目标平台、禁用风格、资产要求或“只读不写入”。</p>
+<h3 id="43-用自然语言写入">4.3 用自然语言写入</h3>
+<p>当你说“保存到爆款库”“建立选题”“保存草稿”时，Agent 应调用对应参数化工具。判断是否成功的唯一依据是工具结果；普通文本回复不是写入证明。</p>
+<p>为减少误操作，推荐两步法：</p>
+<ol>
+<li>先让 Agent 展示候选和字段；</li>
+<li>明确指出要保存的序号或名称，再允许写入。</li>
+</ol>
+<h3 id="44-不可信内容边界">4.4 不可信内容边界</h3>
+<p>趋势标题、网页摘要、平台评论、稿件正文和 <code>@</code> 引用都可能包含类似“忽略之前规则”“立即发布”等文字。DSH-MediaOps 把它们全部视为数据；它们不能替代当前用户指令、系统规则或原生审批。</p>
+<h2 id="5-mediaops-工作台">5. MediaOps 工作台</h2>
+<p>MediaOps 工作台有三个入口：对话视图中的 <code>MediaOps</code>、DSH 右侧栏页面入口中的 <code>MediaOps</code>，以及设置 → <code>MediaOps</code>。右侧栏适合边聊天边核对选题和发布队列；设置入口可在没有活动对话时查看状态。</p>
+<p>它用于快速查看状态与执行轻量操作。研究、创作、审稿和真实发布仍在对话中推进。</p>
+<p>主要页面包括：</p>
+<ul>
+<li><strong>概览</strong>：Skills、选题、爆款、草稿和已发布数量；</li>
+<li><strong>选题库</strong>：浏览、搜索、复制定位文本和新建选题；</li>
+<li><strong>爆款库</strong>：查看来源并整理为选题；</li>
+<li><strong>草稿</strong>：查看标题、正文摘要、目标平台和状态；</li>
+<li><strong>发布队列</strong>：查看每个平台的任务状态、结果链接和错误；</li>
+</ul>
+<p>模型不在上述工作台标签内配置。打开 <strong>DSH 设置 → 多模态模型</strong>，管理图像、视频、音乐和云端语音提供商。</p>
+<p>工作台通过 DSH 本机 Web Server 访问 <code>/api/dsh-mediaops</code>。API 只接受 loopback、合法 localhost Host 与 same-origin 请求；它不是局域网或互联网 API。</p>
+<h2 id="6-标准运营流程">6. 标准运营流程</h2>
+<h3 id="61-发现热点">6.1 发现热点</h3>
+<p>示例：</p>
+<pre><code class="language-text">拉取微博、抖音、知乎、B站今天的热点，每个平台最多 10 条。保留平台来源和抓取时间；某个平台失败时单独报告，不要拿其他平台结果补齐。
+</code></pre>
+<p>注意：</p>
+<ul>
+<li>热榜来自第三方接口或平台页面，可能因网络、限流或结构变动而失败；</li>
+<li>“热度”在不同平台的单位不可直接横向比较；</li>
+<li>结果进入对话不等于自动进入爆款库；</li>
+<li>紧急趋势与预定季节热点应采用不同的时效判断。</li>
+</ul>
+<h3 id="62-收藏与拆解爆款">6.2 收藏与拆解爆款</h3>
+<p>建议保存：来源平台、原始链接、标题、作者、热度、摘要、钩子、受众、结构、情绪、可复用点、不可复用点和标签。</p>
+<p>不要把“热度高”当作适合账号的充分条件。可以让 Agent 额外按账号定位、生产成本、时效窗口和同质化风险评分。</p>
+<h3 id="63-整理为选题">6.3 整理为选题</h3>
+<p>推荐要求 Agent 同时提供：</p>
+<ul>
+<li>核心矛盾与用户收益；</li>
+<li>与来源案例的差异；</li>
+<li>适合的平台和内容形态；</li>
+<li>可以验证的事实与待补资料；</li>
+<li>预计生产成本和时效；</li>
+<li>建议标题、角度和结构。</li>
+</ul>
+<p>通过爆款整理出的选题会保留来源关系，后续可追溯“为什么做这个选题”。</p>
+<h3 id="64-创作与质检">6.4 创作与质检</h3>
+<p>先指定目标平台、账号语气、读者、篇幅、素材约束和禁止事项，再让 Agent 路由 Skills。</p>
+<p>示例：</p>
+<pre><code class="language-text">基于 @选题库 的资料写一版 900 字知乎回答。事实断言必须标出需要核实的来源，不使用夸张收益承诺。完成后做质量检查和版权风险检查，只保存为 draft。
+</code></pre>
+<p>多模态任务应提前说明输出规格：尺寸、比例、时长、字幕、画面一致性、声音授权与文件格式。生成模型配置见下一章。</p>
+<h3 id="65-发布与回收">6.5 发布与回收</h3>
+<p>发布前至少确认：</p>
+<ul>
+<li>草稿状态为 <code>ready</code>；</li>
+<li>平台与账号准确；</li>
+<li>正文和素材是最终版本；</li>
+<li>素材位于当前对话 workspace 内；</li>
+<li>账号登录态和平台依赖可用；</li>
+<li>已阅读完整预览，而不是仅看标题或摘要；</li>
+<li>对定时、可见性、标签等参数没有歧义。</li>
+</ul>
+<p>执行后遇到超时或崩溃，不要立即重发。先调用恢复/对账流程，避免同一内容被重复发布。</p>
+<h2 id="7-多模态模型配置">7. 多模态模型配置</h2>
+<p>部分图像、视频、音乐和云端语音 Skill 需要第三方模型 API。DSH-MediaOps 提供统一配置面板和 Host 受控运行入口，避免让 Agent 在对话、命令行参数或稿件中接触密钥。当前严格只有这四个模型组，不包含受管 ASR/语音转写；每次只运行明确选中的默认 Provider，不自动故障转移。</p>
+<p>更详细的提供商兼容矩阵与字段说明见 <a href="../../docs/models/">MULTIMODAL_MODELS.md</a>。</p>
+<h3 id="71-配置入口">7.1 配置入口</h3>
+<p>打开 DSH 设置 → <code>多模态模型</code>。先选择模型类别与预定义 Provider，再填写该 Provider 所需字段：</p>
+<ul>
+<li>是否启用此 Provider；</li>
+<li>API 根地址（Provider 使用内置官方默认值时可选）；</li>
+<li>API Key、Access Key / Secret Key 等凭证；</li>
+<li>模型 ID 与该 Provider 的可选参数；</li>
+<li>只有自托管服务确实需要时，才显式允许私有网络地址。</li>
+</ul>
+<p>保存后，列表只显示密钥是否存在，不返回完整密钥或可识别片段。</p>
+<p><strong>配置一次，可在同一 DSH 数据目录下跨会话、跨工作区复用。</strong> 切换文章或视频项目不必重复填 Key；它不随业务工作区迁移。更换机器、<code>DSH_HOME</code> 或实际 data root 时，需要安全迁移配置或重新填写；多个 profile 只有指向同一个 data root 时才共享。</p>
+<h3 id="72-密钥操作">7.2 密钥操作</h3>
+<p>编辑配置时，密钥有三种明确动作：</p>
+<ul>
+<li><strong>保留（keep）</strong>：其他字段变化，继续使用现有密钥；</li>
+<li><strong>替换（replace）</strong>：用输入的新密钥覆盖；</li>
+<li><strong>清除（clear）</strong>：删除该提供商的密钥，依赖它的任务将不可运行。</li>
+</ul>
+<p>空输入不会被猜测为清除。这个设计避免浏览器因为没有拿到原密钥而意外覆盖它。</p>
+<h3 id="73-能力路由">7.3 能力路由</h3>
+<p>每个模型类别可以保存多个提供商配置，并明确选择一个默认提供商。任务执行前，Host 按脚本所属类别读取该默认项；未选择、未启用或配置不完整时返回缺失项，不会使用未知的隐式密钥，也不会自动故障转移到另一个提供商。</p>
+<p>建议为生产任务固定模型 ID，而不是只写供应商的浮动别名。模型升级可能改变画风、时长、成本和审核规则。</p>
+<h3 id="74-验证与真实调用">7.4 验证与真实调用</h3>
+<p>“检查配置”默认只做离线校验，例如必填字段、URL、安全协议、能力与模型映射，不产生计费请求。</p>
+<p>真正调用模型：</p>
+<ul>
+<li>由 Host 选择预定义 Skill 脚本；</li>
+<li>只允许固定脚本和参数形状；</li>
+<li>禁止 <code>--model</code> 覆盖，并对数量、尺寸/质量/分辨率、时长、轮询/超时、语速和输入文件大小设置 Host 上限；</li>
+<li>不使用 shell 拼接；</li>
+<li>只注入该脚本需要的白名单环境变量；</li>
+<li>公网 HTTP 始终拒绝；只有显式开启私网权限，且目标全部解析到 loopback、RFC1918 或 IPv6 ULA 时，私网 HTTP 才可用；</li>
+<li>API/轮询禁止 redirect；每次请求只连接一次 DNS 解析得到的已验证 IP，HTTPS 仍校验原主机名；媒体下载最多 3 跳并逐跳重新固定公网 HTTPS 目标；</li>
+<li>Provider 私网许可只作用于配置的 API endpoint，不会传给供应商返回的媒体 URL；响应按类型限长；</li>
+<li>Provider 请求前用 Host 注入的 device/inode 复核 workspace 与 <code>outputs/</code>，再以 <code>O_NOFOLLOW</code>、逐级 <code>dir_fd</code> 打开并持有目标父目录；partial 的创建、校验、<code>fsync</code>、原子替换和删除均相对该描述符执行；</li>
+<li>受管语音转码让 FFmpeg 写入预先打开、可 seek 的普通文件描述符，再使用同一原子提交路径；</li>
+<li>对输出中的常见密钥、临时凭证与 URL userinfo/query/fragment 做脱敏；</li>
+<li>审批显示 provider、实际模型、规格与输入 basename/大小/SHA-256，但不显示 prompt/key；批准与同一调用一次性绑定，执行前配置和输入发生变化都会拒绝，本地输入以只读 snapshot 交给脚本；声音登记还必须确认样本上传和声音授权；</li>
+<li>通过 DSH 原生审批后才执行可能计费的请求。</li>
+</ul>
+<h3 id="75-本地存储">7.5 本地存储</h3>
+<p>模型配置保存在 data root 的私有文件中。目录尽力设置为 <code>0700</code>，含密钥文件尽力设置为 <code>0600</code>。密钥不会进入 <code>state.json</code>、草稿、发布载荷或 npm 包。</p>
+<p>本地文件不做字段级加密。请启用操作系统磁盘加密，并限制设备账户访问。备份时把含密钥配置当作敏感凭证处理。</p>
+<h3 id="76-提供商与网络安全">7.6 提供商与网络安全</h3>
+<ul>
+<li>优先使用官方 HTTPS API；</li>
+<li>不要在服务地址中写用户名、密码或 API Key；</li>
+<li>公网端点必须使用 HTTPS，开启私网权限也不会放行公网 HTTP；自托管 localhost/RFC1918/ULA 服务必须显式开启该 Provider 的私网权限，且私网 HTTP 的所有解析结果都必须落在这些范围；云 metadata、链路本地与其他保留地址始终拒绝；</li>
+<li>受控模型网络请求不继承 Host 的 HTTP(S) 代理环境，以保证 DNS 校验的地址就是实际连接地址；</li>
+<li>异常和 SIGTERM 会清理本次临时文件。模型子进程遭 SIGKILL、但 Host 与已批准目录身份保持正常时，Host 的 <code>finally</code> 按 run ID 精确清理；如果 Host 本身崩溃，启动/后续清理与定时 janitor 只在可信 v2 pending 记录能证明 owner 已死亡、且 workspace/<code>outputs/</code> inode 仍匹配时恢复；</li>
+<li>活跃或身份无法确认的 owner 不会被清理；v1、截断或畸形 pending 记录会保守保留并且不读取其中路径。系统不承诺自动删除无法安全归属的残留；</li>
+<li>使用第三方模型前，确认内容许可、数据保留、训练用途和地区合规要求；</li>
+<li>文生图、文生视频的成功响应不自动代表素材拥有商用授权。</li>
+</ul>
+<h2 id="8-skills-能力目录与路由">8. Skills 能力目录与路由</h2>
+<h3 id="81-来源与优先级">8.1 来源与优先级</h3>
+<p>插件内置 Easel 的 112 个 Skill 和共享资源。它们通过 bundled provider 提供：</p>
+<ol>
+<li>用户级或项目级同名 Skill 优先；</li>
+<li>DSH-MediaOps bundled Skill 作为后备；</li>
+<li>相对 <code>resourceBase</code> 的脚本和 references 解析到插件包内；</li>
+<li>Skill 正文在选中时才读取，产物仍写当前业务 workspace，不写已安装 npm 包目录。</li>
+</ol>
+<p>当前 DSH provider 协议仍会把全部可调用 Skill 的名称与描述加入模型上下文；本版本没有宣称实现完整的分层按需展开。该限制及后续架构方向记录在 Issue #5。</p>
+<p>完整逐项说明见 <a href="../../docs/capabilities/">CAPABILITIES.md</a>。</p>
+<h3 id="82-能力选择建议">8.2 能力选择建议</h3>
+<p>不要要求 Agent 无差别读取全部 Skill。先描述任务阶段、目标平台和产物形态，例如：</p>
+<pre><code class="language-text">这是“策划”任务：基于两个爆款找差异化角度，不生成正文，不调用发布类能力。
+</code></pre>
+<pre><code class="language-text">这是“创作 / 视频”任务：输出 9:16、30 秒、带中文字幕的视频；先给分镜与成本预估，经我确认后再调用计费模型。
+</code></pre>
+<pre><code class="language-text">这是“归因”任务：只读取已有发布记录和数据，不写入平台。
+</code></pre>
+<h3 id="83-host-only-发布-skills">8.3 Host-only 发布 Skills</h3>
+<p>带真实平台写入、批量派发、通知、短链或排期派发路径的 13 个 Skill 不向模型和用户直接开放。真实平台脚本只能由 Host 发布 adapter 以固定 argv 执行。</p>
+<p>发布层中的质量检查、内容改编、人设检查、SEO、版权风险与评论策略等只读或生成型 Skill 仍可正常调用。</p>
+<h2 id="9-发布连接器">9. 发布连接器</h2>
+<div class="doc-table" tabindex="0" role="region" aria-label="数据表格"><table>
+<thead>
+<tr>
+<th>平台</th>
+<th>标识</th>
+<th>受控实现</th>
+<th>接受后的首个状态</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>小红书</td>
+<td><code>xiaohongshu</code></td>
+<td><code>skill-xhs-publisher</code></td>
+<td><code>submitted</code></td>
+</tr>
+<tr>
+<td>抖音</td>
+<td><code>douyin</code></td>
+<td><code>skill-douyin-upload</code></td>
+<td><code>submitted</code></td>
+</tr>
+<tr>
+<td>快手</td>
+<td><code>kuaishou</code></td>
+<td><code>skill-kuaishou-upload</code></td>
+<td><code>submitted</code></td>
+</tr>
+<tr>
+<td>微信视频号</td>
+<td><code>wechat-channels</code></td>
+<td><code>skill-channels-upload</code></td>
+<td><code>submitted</code></td>
+</tr>
+<tr>
+<td>微信公众号</td>
+<td><code>wechat-official</code></td>
+<td><code>skill-wechat-publisher</code></td>
+<td><code>draft_created</code></td>
+</tr>
+<tr>
+<td>知乎</td>
+<td><code>zhihu</code></td>
+<td><code>skill-zhihu-publisher</code></td>
+<td><code>submitted</code></td>
+</tr>
+<tr>
+<td>哔哩哔哩</td>
+<td><code>bilibili</code></td>
+<td><code>skill-bilibili-upload</code></td>
+<td>即时 <code>submitted</code>；定时 <code>scheduled</code></td>
+</tr>
+</tbody></table>
+</div><h3 id="91-常见外部依赖">9.1 常见外部依赖</h3>
+<ul>
+<li>小红书、抖音、快手、视频号、知乎：Playwright、Chromium 和有效浏览器登录态；</li>
+<li>微信公众号：<code>requests</code>、<code>PyYAML</code>、外置账号 YAML、有效 <code>app_id/app_secret</code> 和 IP 白名单；</li>
+<li>Bilibili：<code>biliup</code> CLI 与有效 Cookie；</li>
+<li>多媒体处理：Python 3、FFmpeg、Pillow 或单个 Skill 声明的库。</li>
+</ul>
+<p>平台可能触发验证码、设备验证、风控或人工审核。插件不会自动绕过这些机制。</p>
+<h3 id="92-微信公众号">9.2 微信公众号</h3>
+<p>当前连接器只创建草稿箱条目，默认不自动群发。群发会影响真实受众并可能消耗平台配额，应在单独验证权限、预览和审批语义后启用，不要把“已创建草稿”误判为“已群发”。</p>
+<h3 id="93-bilibili-定时">9.3 Bilibili 定时</h3>
+<p>Bilibili 是当前受控 adapter 中支持定时参数的平台。时间必须包含时区，且至少晚于当前时间 4 小时。其他平台出现“定时”字样不代表 Host 连接器已经提供可靠排期。</p>
+<h2 id="10-发布安全协议">10. 发布安全协议</h2>
+<p>真实发布按以下顺序进行，任何一步都不能省略：</p>
+<pre><code class="language-text">preview → confirmed → publishing → submitted ─┐
+                              ├→ draft_created ├→ published
+                              └→ scheduled ────┘
+             └──────────────→ failed（仅有未产生内容的证据）
+preview / confirmed → cancelled
+</code></pre>
+<h3 id="101-host-账号探针与-dry-run">10.1 Host 账号探针与 dry-run</h3>
+<p><code>mediaops_prepare_publish</code> 从当前 DSH 会话读取权威绝对 workspace，并检查：</p>
+<ul>
+<li>草稿是 <code>ready</code>，或属于跨平台部分完成后的 <code>partially_published</code>；</li>
+<li><code>accountKey</code> 精确匹配目标账号；</li>
+<li>账号探针返回非敏感、稳定的 SHA-256 身份指纹；</li>
+<li>adapter 的无 <code>--exec</code> dry-run 成功；</li>
+<li>素材是 workspace 内的普通文件，不是符号链接、相对路径或远程 URL。</li>
+</ul>
+<h3 id="102-不可变冻结">10.2 不可变冻结</h3>
+<p>Host 将正文和本地素材复制到 data root 私有 staging 目录，记录：</p>
+<ul>
+<li>草稿 revision；</li>
+<li>正文与素材 SHA-256；</li>
+<li>账号身份指纹；</li>
+<li>平台参数和预检证据；</li>
+<li><code>payloadDigest</code>。</li>
+</ul>
+<p>预览令牌有效期为 30 分钟。长正文需要分页读完，不可用前 5,000 字摘要代替完整预览。</p>
+<h3 id="103-确认授权">10.3 确认授权</h3>
+<p>你看完预览并明确说“确认发布”后，Agent 才能用相同一次性令牌调用 <code>mediaops_confirm_publish</code>。Host 再次校验令牌、摘要和幂等键，DSH 显示可信摘要并发起第一次原生审批。</p>
+<p>这一步仅把状态变为 <code>confirmed</code>，不触网、不发布。</p>
+<h3 id="104-真实执行">10.4 真实执行</h3>
+<p><code>mediaops_execute_publish(publicationId, payloadDigest)</code> 会：</p>
+<ol>
+<li>重新核对冻结文件；</li>
+<li>展示平台、账号身份、正文哈希、素材安全路径、大小、哈希和参数；</li>
+<li>发起第二次原生审批；</li>
+<li>签发有时限的执行租约；</li>
+<li>再次探测账号身份；</li>
+<li>使用固定 argv、<code>shell: false</code> 启动唯一 adapter。</li>
+</ol>
+<p>模型不能读取完整执行快照、修改载荷、替换账号或自行运行发布脚本。</p>
+<h3 id="105-结果与对账">10.5 结果与对账</h3>
+<p>平台明确接受后，状态先进入 <code>submitted</code>、<code>draft_created</code> 或 <code>scheduled</code>。只有官方域名链接或平台回执等证据可以把记录推进到 <code>published</code>。</p>
+<p>如果执行启动后超时、中断、崩溃或结果不确定：</p>
+<ol>
+<li>保持 <code>publishing</code>；</li>
+<li>禁止盲目重发；</li>
+<li>调用 <code>mediaops_recover_publish</code> 获取只读对账包；</li>
+<li>查到回执后，经原生审批调用 <code>mediaops_record_publish_result</code>；</li>
+<li>仅在明确没有产生内容时记录 <code>failed</code>。</li>
+</ol>
+<p>同一平台只要有任意 <code>publishing</code> 计划，就阻止新的真实执行，直到人工对账写入终态。</p>
+<h2 id="11-数据目录备份与迁移">11. 数据目录、备份与迁移</h2>
+<h3 id="111-workspace-root-解析">11.1 Workspace root 解析</h3>
+<p>一般 Skill 的 workspace root 取首个非空值：</p>
+<ol>
+<li><code>DSH_MEDIAOPS_WORKSPACE</code></li>
+<li><code>EASEL_ROOT</code>（兼容上游）</li>
+<li>当前进程工作目录</li>
+</ol>
+<p>真实发布不接受模型或环境变量另报 workspace，而是使用当前 DSH 会话的绝对 <code>session.header.cwd</code>。</p>
+<h3 id="112-data-root-解析">11.2 Data root 解析</h3>
+<p>data root 取首个有效值：</p>
+<ol>
+<li>插件 <code>config.dataDir</code></li>
+<li><code>DSH_MEDIAOPS_DATA_DIR</code></li>
+<li><code>$DSH_HOME/mediaops</code></li>
+<li><code>~/.dsh/mediaops</code></li>
+</ol>
+<p>常见内容：</p>
+<div class="doc-table" tabindex="0" role="region" aria-label="数据表格"><table>
+<thead>
+<tr>
+<th>路径</th>
+<th>用途</th>
+<th>敏感性</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>state.json</code></td>
+<td>选题、爆款、草稿、发布记录</td>
+<td>中</td>
+</tr>
+<tr>
+<td><code>secrets/multimodal-models.json</code></td>
+<td>模型端点、模型 ID、API Key、默认提供商</td>
+<td>高</td>
+</tr>
+<tr>
+<td><code>staging/&lt;publication-id&gt;/</code></td>
+<td>冻结正文和素材</td>
+<td>高</td>
+</tr>
+<tr>
+<td><code>wechat-publisher.yaml</code></td>
+<td>公众号账号配置</td>
+<td>高</td>
+</tr>
+<tr>
+<td><code>credentials/</code></td>
+<td>Token、Cookie 等</td>
+<td>高</td>
+</tr>
+<tr>
+<td><code>browser-profiles/</code></td>
+<td>平台浏览器登录态</td>
+<td>高</td>
+</tr>
+</tbody></table>
+</div><h3 id="113-备份">11.3 备份</h3>
+<p>建议在 DSH 完全退出后备份 data root，以免同时写入。备份介质应加密。不要把 data root 直接提交到 Git、同步到公开网盘或发到 Issue。</p>
+<p>恢复时保持原有目录权限，并在首次运行后检查：</p>
+<ul>
+<li>状态 schema 是否完成迁移；</li>
+<li>模型密钥仍只显示为脱敏状态；</li>
+<li>浏览器登录态是否过期；</li>
+<li>旧的 <code>preview</code> / <code>confirmed</code> 是否已按安全规则取消；</li>
+<li>未完成 <code>publishing</code> 记录是否需要人工对账。</li>
+</ul>
+<h3 id="114-状态写入与迁移">11.4 状态写入与迁移</h3>
+<p>状态写入采用进程内串行、跨 Host 文件锁、临时文件原子替换和最佳努力 fsync。单个状态文件上限 16 MiB。旧 schema 会在启动时迁移；无法安全恢复的待处理发布会被取消并销毁旧授权。</p>
+<h2 id="12-插件配置">12. 插件配置</h2>
+<p>插件行 ID 为 <code>mediaops</code>。基础字段：</p>
+<div class="doc-table" tabindex="0" role="region" aria-label="数据表格"><table>
+<thead>
+<tr>
+<th>字段</th>
+<th align="right">默认值</th>
+<th>范围/作用</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>dataDir</code></td>
+<td align="right">空字符串</td>
+<td>data root；空值按上一章顺序回退</td>
+</tr>
+<tr>
+<td><code>trendCacheTtlMs</code></td>
+<td align="right"><code>60000</code></td>
+<td>热榜内存缓存，5 秒至 1 小时</td>
+</tr>
+<tr>
+<td><code>trendTimeoutMs</code></td>
+<td align="right"><code>10000</code></td>
+<td>单个平台请求超时，1 至 60 秒</td>
+</tr>
+<tr>
+<td><code>maxReferenceChars</code></td>
+<td align="right"><code>12000</code></td>
+<td>单条 <code>@</code> 引用最大字符数，1,000 至 50,000</td>
+</tr>
+</tbody></table>
+</div><p>DSH 的 id 定向 patch 会整体替换该行 <code>config</code>，而不是深度合并，所以覆盖时要写全需要保留的字段：</p>
+<pre><code class="language-yaml">- id: mediaops
+  name: dsh-mediaops
+  config:
+    dataDir: /Users/you/Documents/dsh-mediaops-data
+    trendCacheTtlMs: 120000
+    trendTimeoutMs: 15000
+    maxReferenceChars: 16000
+</code></pre>
+<p>配置覆盖机制与组件关系见 <a href="../../docs/architecture/">ARCHITECTURE.md</a>。</p>
+<h2 id="13-权限安全与合规">13. 权限、安全与合规</h2>
+<h3 id="131-默认安全边界">13.1 默认安全边界</h3>
+<ul>
+<li>本地 API 只接受 loopback、localhost Host 和 same-origin；</li>
+<li>所有外部内容与模型输出均视为不可信数据；</li>
+<li><code>@</code> 引用有转义、来源声明与长度限制，但不是提示注入的绝对防护；</li>
+<li>发布素材限制在权威 workspace 内，拒绝符号链接和远程 URL；</li>
+<li>确认、真实执行与人工对账依赖 DSH 原生审批；</li>
+<li>Host-only Skills 不允许模型直接调用；</li>
+<li>日志会尽力脱敏，但正确的秘密管理不能由日志脱敏替代。</li>
+</ul>
+<h3 id="132-文件与容量限制">13.2 文件与容量限制</h3>
+<p>单次发布正文与附件合计最多 20 个文件；单文件上限 2 GiB，总量上限 4 GiB，并预留 256 MiB 磁盘空间。跨预览 staging 使用跨进程锁和 6 GiB 全局配额。</p>
+<h3 id="133-内容合规">13.3 内容合规</h3>
+<p>你仍需自行确认：</p>
+<ul>
+<li>素材版权、肖像权、音乐授权和商用范围；</li>
+<li>平台社区规则、广告法和行业监管要求；</li>
+<li>生成式内容标识要求；</li>
+<li>用户隐私、个人信息与跨境数据要求；</li>
+<li>模型服务的内容保留和训练政策。</li>
+</ul>
+<p>自动化成功不等于合规通过。平台接收内容也不等于平台认可内容合法。</p>
+<h3 id="134-报告安全问题">13.4 报告安全问题</h3>
+<p>按 <a href="../../docs/security-policy/">SECURITY.md</a> 使用 GitHub 私密渠道报告安全问题。不要在公开 Issue 中粘贴 Cookie、API Key、浏览器 profile、未发布正文或完整本机路径。</p>
+<h2 id="14-故障排查">14. 故障排查</h2>
+<h3 id="141-插件未加载或看不到-mediaops-入口">14.1 插件未加载或看不到 MediaOps 入口</h3>
+<ol>
+<li>确认安装命令使用的是当前 DSH profile；</li>
+<li>完全退出并重启 DSH Desktop；</li>
+<li>检查 Node 与 pnpm 版本；</li>
+<li>查看 DSH Host 日志中是否有 <code>dsh-mediaops</code> 加载错误；</li>
+<li>确认 DSH 已升级到兼容的 0.2.x；旧版缺少右侧栏服务时会导致客户端入口无法挂载；</li>
+<li>本地开发安装时，确认修改 <code>src/</code> 后已运行 <code>pnpm build</code>。</li>
+</ol>
+<h3 id="142--搜不到记录">14.2 <code>@</code> 搜不到记录</h3>
+<ul>
+<li>确认记录已经通过工具成功写入；</li>
+<li>清空搜索词后再试；</li>
+<li>在 MediaOps 工作台搜索同一标题，确认资料库能正常加载；四类引用统一经过 <code>/api/dsh-mediaops/references</code> 查询；</li>
+<li>确认没有把手工输入的 <code>@标题</code> 当作已选择的结构化记录；</li>
+<li>检查 data root 是否指向了另一个 profile 或目录。</li>
+</ul>
+<h3 id="143-热榜为空或部分平台失败">14.3 热榜为空或部分平台失败</h3>
+<ul>
+<li>区分“平台返回空列表”和“数据源请求失败”；</li>
+<li>检查网络、DNS、代理和请求超时；</li>
+<li>稍后重试，避免快速循环触发限流；</li>
+<li>记录平台、数据源和抓取时间；</li>
+<li>不要用另一个平台的结果冒充失败平台结果。</li>
+</ul>
+<h3 id="144-模型配置检查通过但生成失败">14.4 模型配置检查通过，但生成失败</h3>
+<p>离线检查不发送计费请求，所以仍可能存在：余额不足、模型无权限、地区限制、请求格式变化、内容审核、并发限制或服务端故障。</p>
+<p>排查顺序：</p>
+<ol>
+<li>确认任务需要的能力有默认提供商；</li>
+<li>确认密钥状态为已配置；</li>
+<li>检查模型 ID 和官方服务地址；</li>
+<li>查看脱敏后的 Host 错误；</li>
+<li>用供应商官方控制台确认权限和余额；</li>
+<li>不要把完整密钥复制到对话或 Issue。</li>
+</ol>
+<h3 id="145-发布-dry-run-失败">14.5 发布 dry-run 失败</h3>
+<p>常见原因：</p>
+<ul>
+<li>账号 key 或昵称不精确；</li>
+<li>浏览器登录态失效；</li>
+<li>Playwright / Chromium / <code>biliup</code> / Python 依赖缺失；</li>
+<li>素材不在当前 workspace；</li>
+<li>素材是符号链接、远程 URL 或超过容量限制；</li>
+<li>公众号配置、IP 白名单或主题文件不匹配；</li>
+<li>Bilibili 定时时间不足 4 小时或缺少时区。</li>
+</ul>
+<p>dry-run 失败意味着尚未真实发布。修复问题后重新准备即可。</p>
+<h3 id="146-发布卡在-publishing">14.6 发布卡在 <code>publishing</code></h3>
+<p>不要重发。<code>publishing</code> 表示执行已经开始但结果未知，重复执行可能产生重复内容。</p>
+<p>调用 <code>mediaops_recover_publish</code> 取得只读对账包，去平台后台确认是否产生草稿、审核中内容或公开内容，再经原生审批记录结果。无法确认时保持原状态并人工处理。</p>
+<h3 id="147-平台显示已提交但插件不是-published">14.7 平台显示已提交，但插件不是 <code>published</code></h3>
+<p>这是预期行为。<code>submitted</code>、<code>draft_created</code> 与 <code>scheduled</code> 都不是公开成功。取得官方链接或明确平台回执后再对账为 <code>published</code>。</p>
+<h2 id="15-升级卸载与开发">15. 升级、卸载与开发</h2>
+<h3 id="151-升级前">15.1 升级前</h3>
+<ol>
+<li>等待正在执行的发布完成或完成对账；</li>
+<li>完全退出 DSH；</li>
+<li>加密备份 data root；</li>
+<li>阅读仓库 Release Notes 与迁移说明；</li>
+<li>不要删除 <code>publishing</code> 记录来绕过执行锁。</li>
+</ol>
+<p>升级时使用与安装相同的命令和 profile：</p>
+<pre><code class="language-sh">dsh plugin --profile desktop add github:Tangweiwei227/DSH-MediaOps
+</code></pre>
+<p>完成后重启 DSH，再检查右侧工作台、<code>@</code> 四库引用和模型状态。升级不会替你重新授权发布；已迁移或过期的预览需要重新核对。</p>
+<h3 id="152-卸载">15.2 卸载</h3>
+<pre><code class="language-sh">dsh plugin --profile desktop remove dsh-mediaops
+</code></pre>
+<p><code>--profile</code> 必须与安装时一致。卸载后重启 DSH，插件的入口、工具和本地 API 才会从运行中的进程移除。</p>
+<p>卸载插件不会自动删除 data root、平台凭证、模型密钥或浏览器登录态。若确定不再使用，请先备份需要保留的数据，再使用系统文件管理器安全删除精确目录。</p>
+<h3 id="153-本地开发">15.3 本地开发</h3>
+<pre><code class="language-sh">git clone https://github.com/Tangweiwei227/DSH-MediaOps.git
+cd DSH-MediaOps
+pnpm install
+pnpm check
+</code></pre>
+<p>安装当前工作树：</p>
+<pre><code class="language-sh">dsh plugin --profile desktop add file:/absolute/path/to/DSH-MediaOps
+</code></pre>
+<p>生产安装使用 <code>lib/index.js</code> 和 <code>lib/client.js</code>；修改 <code>src/</code> 后必须重新构建。提交前至少运行：</p>
+<pre><code class="language-sh">pnpm check
+</code></pre>
+<p>该命令应包含类型检查、测试、构建、frontmatter 检查和 npm 包清单检查。</p>
+<h2 id="16-当前限制与路线图">16. 当前限制与路线图</h2>
+<ul>
+<li>热榜依赖外部数据源，平台变化可能导致单个平台暂时不可用；</li>
+<li>发布后指标回收需要每个平台稳定的只读接口和身份验证，不能用页面抓取假装成可靠归因；</li>
+<li>微信公众号默认只创建草稿，不自动群发；</li>
+<li>目前只有 Bilibili 连接器支持受控定时参数；</li>
+<li>多平台发布的每个平台应保留独立审批和状态，不能用“一次成功”覆盖部分失败；</li>
+<li>DSH 当前 Skill provider 协议会把可调用 Skill 的名称和描述展示给模型，完整的层级按需展开还需要 DSH 核心协议支持；</li>
+<li><code>tts-voiceover</code> 和 <code>multi-voice-dubbing</code> 在 managed 模式下要求每段/每行云端生成单独审批，原批量脚本不可用；<code>short-drama</code> 的远程批量 generate/align 尚未改造为逐次受控调用，v0.2 只支持其不联网策划阶段；</li>
+<li>本地状态没有字段级加密、多人权限、云同步或云端备份；</li>
+<li>项目通过 GitHub 分发，不代表已经上架 DSH 插件市场。</li>
+</ul>
+<p>公开规划和实现进度见 <a href="https://github.com/Tangweiwei227/DSH-MediaOps/issues" target="_blank" rel="noreferrer">GitHub Issues</a>。Issue 中的验收条件会先按当前 DSH 和平台能力复核；不可安全实现的部分会拆分，不以降低审批或证据标准换取“功能完成”。</p>
+<hr>
+<h2 id="快速术语表">快速术语表</h2>
+<div class="doc-table" tabindex="0" role="region" aria-label="数据表格"><table>
+<thead>
+<tr>
+<th>术语</th>
+<th>含义</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>DSH</td>
+<td>DeepSeek Harness，插件运行 Host</td>
+</tr>
+<tr>
+<td>bundled skill</td>
+<td>随插件分发，正文在选中时读取的 Skill；名称与描述仍受 Host 注入规则约束</td>
+</tr>
+<tr>
+<td>workspace</td>
+<td>当前任务的业务文件目录</td>
+</tr>
+<tr>
+<td>data root</td>
+<td>插件本地持久化和敏感数据目录</td>
+</tr>
+<tr>
+<td>dry-run</td>
+<td>不产生外部写入的预检</td>
+</tr>
+<tr>
+<td>staging</td>
+<td>冻结发布载荷的私有临时区</td>
+</tr>
+<tr>
+<td>payloadDigest</td>
+<td>冻结载荷的一致性摘要，不是数字签名</td>
+</tr>
+<tr>
+<td>accountKey</td>
+<td>连接器用于精确选择账号的键</td>
+</tr>
+<tr>
+<td>submitted</td>
+<td>平台已接受，但不等于公开</td>
+</tr>
+<tr>
+<td>reconciliation</td>
+<td>用平台证据恢复或确认发布结果的对账过程</td>
+</tr>
+</tbody></table>
+</div><p>如本说明书与当前代码行为不一致，以当前版本的代码、安全检查和 DSH 原生审批结果为准，并请在仓库提交 Issue 帮助修正说明。</p>
+</article>
+      <nav class="doc-pager" aria-label="相邻文档"><a href="../../docs/"><span aria-hidden="true">←</span> 开始使用</a><a href="../../docs/capabilities/">能力目录 <span aria-hidden="true">→</span></a></nav>
+      <footer class="doc-footer"><a href="../../">DSH-MediaOps</a><span>0.2.x</span></footer>
+    </main>
+    <aside class="doc-toc" aria-label="本页目录"><p>本页内容</p><nav><a href="#1-能做什么">1. 能做什么</a>
+<a href="#2-五分钟开始">2. 五分钟开始</a>
+<a href="#3-核心概念">3. 核心概念</a>
+<a href="#4-对话即工作台">4. 对话即工作台</a>
+<a href="#5-mediaops-工作台">5. MediaOps 工作台</a>
+<a href="#6-标准运营流程">6. 标准运营流程</a>
+<a href="#7-多模态模型配置">7. 多模态模型配置</a>
+<a href="#8-skills-能力目录与路由">8. Skills 能力目录与路由</a>
+<a href="#9-发布连接器">9. 发布连接器</a>
+<a href="#10-发布安全协议">10. 发布安全协议</a>
+<a href="#11-数据目录备份与迁移">11. 数据目录、备份与迁移</a>
+<a href="#12-插件配置">12. 插件配置</a>
+<a href="#13-权限安全与合规">13. 权限、安全与合规</a>
+<a href="#14-故障排查">14. 故障排查</a>
+<a href="#15-升级卸载与开发">15. 升级、卸载与开发</a>
+<a href="#16-当前限制与路线图">16. 当前限制与路线图</a>
+<a href="#快速术语表">快速术语表</a></nav></aside>
+  </div>
+  <script src="../../docs/search-index.js" defer></script>
+  <script src="../../docs.js" defer></script>
+</body>
+</html>

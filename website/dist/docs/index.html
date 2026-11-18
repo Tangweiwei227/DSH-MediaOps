@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#08111f">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="description" content="安装 MediaOps，在对话中完成你的第一篇内容草稿。">
+  <meta name="docs-source" content="96b76bcb590844fdb3ee7290b49af14b5c069c15a7c2a3cf269d72a772b147fc">
+  <title>开始使用 · MediaOps 使用文档</title>
+  <link rel="canonical" href="https://pages.xiaotangtevin.top/DSH-MediaOps/docs/">
+  <link rel="icon" href="../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="../docs.css">
+</head>
+<body class="docs-page" data-site-root="../">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="docs-header">
+      <a class="brand" href="../" aria-label="DSH-MediaOps 首页">
+        <span class="brand-mark" aria-hidden="true"><span>D</span><span>M</span></span>
+        <span class="brand-copy"><strong>DSH-MediaOps</strong></span>
+      </a>
+      <a class="docs-home" href="../">返回官网 <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+  <div class="docs-layout">
+    <aside class="docs-sidebar">
+      <details open data-doc-menu>
+        <summary>文档导航</summary>
+        <div class="docs-menu-body">
+          <label class="sr-only" for="doc-search">搜索文档</label>
+          <input id="doc-search" type="search" placeholder="搜索文档" autocomplete="off" aria-controls="doc-results" data-doc-search>
+          <div id="doc-results" class="doc-results" aria-live="polite" hidden></div>
+          <nav class="doc-nav" aria-label="使用文档">
+            <a href="../docs/" aria-current="page">开始使用</a>
+<a href="../docs/manual/">插件说明书</a>
+<a href="../docs/capabilities/">能力目录</a>
+<a href="../docs/models/">模型配置</a>
+<a href="../docs/safety/">安全与隐私</a>
+<a href="../docs/updates/">更新记录</a>
+            <details><summary>更多与维护</summary><a href="../docs/architecture/">技术架构</a>
+<a href="../docs/upstream/">上游同步</a>
+<a href="../docs/roadmap/">规划与可行性</a>
+<a href="../docs/security-policy/">完整安全政策</a>
+<a href="../docs/attribution/">第三方来源</a>
+<a href="../docs/license/">开源许可证</a>
+<a href="../docs/notice/">来源声明</a></details>
+          </nav>
+        </div>
+      </details>
+    </aside>
+    <main id="main" class="doc-main">
+      <article class="doc-content"><h1 id="开始使用">开始使用</h1>
+<p>从一个选题到一篇可以审阅的草稿，先跑通这一步。</p>
+<p>DSH-MediaOps 是安装在 DeepSeek Harness（DSH）里的媒体运营插件。适合独立博主、新媒体运营和小团队的个人内容工作：找热点、存案例、定选题、写稿、做图，再核对账号和内容后发布。官网是说明文档，实际操作在你本机的 DSH 中完成。</p>
+<h2 id="1-安装并打开工作台">1. 安装并打开工作台</h2>
+<p>先准备兼容的 DSH、Node.js 22.19+ 或 24+，以及 pnpm。插件支持的 DSH 版本范围为 <code>&gt;=0.2.2-rc.3 &lt;0.3.0</code>；如果电脑尚未装好这些基础工具，请先完成 DSH 环境配置。</p>
+<p>在终端执行：</p>
+<pre><code class="language-sh">dsh plugin --profile desktop add github:Tangweiwei227/DSH-MediaOps
+</code></pre>
+<p>完全退出并重启 DSH Desktop。使用 DSH Web 时，把命令中的 <code>desktop</code> 换成 <code>web</code>，重启对应 DSH 服务并刷新页面。profile 就是插件安装到的那一套 DSH 环境。</p>
+<p>打开 DSH 右侧栏的页面入口，选择 <strong>MediaOps</strong>。也可以从对话视图或“设置 → MediaOps”进入同一个工作台。</p>
+<p>看到“概览、选题库、爆款库、草稿、发布队列”，说明工作台已经加载。在对话输入框键入 <code>@</code> 或 <code>/</code>，还可以验证资料引用和快捷工作流。</p>
+<h2 id="2-先告诉它你在做什么账号">2. 先告诉它你在做什么账号</h2>
+<p>描述读者、平台、内容风格和这次要做的事。越具体，越容易得到可用的候选。</p>
+<pre><code class="language-text">我做小红书职场账号，读者是工作 1–3 年的年轻人。
+风格直接、实用，不贩卖焦虑。今天想做一篇沟通技巧图文。
+先给我 5 个选题，说明读者能解决什么问题，不要入库或发布。
+</code></pre>
+<p>想结合热点时，可以换成：</p>
+<pre><code class="language-text">找今天微博、抖音、小红书各 10 条热点，筛出适合我账号的方向。
+保留来源和时间，单独说明失败的平台，先不要入库。
+</code></pre>
+<p>你在这一步得到的是候选，不是已经保存的资料。热点接口偶尔会失败，可以先用自己提供的文章或案例继续创作。</p>
+<h2 id="3-选中再保存">3. 选中，再保存</h2>
+<p>“爆款库”保存值得研究的外部案例；“选题库”保存准备自己做的内容方向。</p>
+<pre><code class="language-text">把第 2 个方向保存为选题，标题是“向同事提需求，怎样说得更清楚”。
+补充读者、角度和结构，保存成功后告诉我。
+</code></pre>
+<p>到右侧选题库检查是否出现记录。如果你先收藏了外部案例，也可以在爆款库点击“整理为选题”。聊天里说“已保存”还不够，应以实际工具结果和库中记录为准。</p>
+<h2 id="4-引用资料完成草稿">4. 引用资料，完成草稿</h2>
+<p>在输入框键入 <code>@</code>，搜索并选择刚保存的选题，再补充下面的要求。直接手打 <code>@某标题</code> 不会自动引用资料。</p>
+<pre><code class="language-text">基于我选中的选题，写一篇小红书图文稿：
+给 3 个标题，正文 600 字以内，附 5 页卡片的文案和画面建议。
+做一次事实与表达检查，只保存为 draft 草稿，不要发布。
+</code></pre>
+<p>先完成文案与配图方案即可。真实生成图片、视频、音乐或云端语音，需要在“设置 → 多模态模型”配置对应服务，可能另行计费。详见<a href="../docs/models/">模型配置</a>。</p>
+<h2 id="5-审稿后再准备发布">5. 审稿后，再准备发布</h2>
+<p>检查事实、标题、封面、素材授权和账号。确认内容可以提交后，让 Agent 保存为 <code>ready</code>（可发布）草稿，再说：</p>
+<pre><code class="language-text">准备把这份 ready 草稿发到小红书账号“我的准确昵称”。
+先检查登录和素材，展示完整正文、图片、平台和账号。
+等我读完并确认后，再申请授权和执行审批。
+</code></pre>
+<p>真实发布需要平台登录态和对应工具。DSH 会先做不发布的预检，再冻结预览，随后分别请求“确认授权”和“真实执行”两次原生审批。改稿或换素材后需要重新准备预览。</p>
+<p>公众号当前只写入草稿箱，不自动群发；B站支持受控定时投稿，需至少提前 4 小时并明确时区。其他平台不要当作已经支持无人值守定时。</p>
+<p>发布记录中的“已提交”不等于“已公开”。如果执行超时或状态不确定，先核对平台后台，避免重复发文。详见<a href="../docs/safety/">安全与隐私</a>。</p>
+<h2 id="每天可以这样用">每天可以这样用</h2>
+<div class="doc-table" tabindex="0" role="region" aria-label="数据表格"><table>
+<thead>
+<tr>
+<th>什么时候</th>
+<th>你可以做什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>开始工作</td>
+<td>输入 <code>/</code>，选择“拉取今日爆款”或“今日内容盘点”</td>
+</tr>
+<tr>
+<td>有了灵感</td>
+<td>保存选题，标明来源、读者和切入角度</td>
+</tr>
+<tr>
+<td>准备创作</td>
+<td>用 <code>@</code> 选择选题、爆款或旧草稿，再描述平台要求</td>
+</tr>
+<tr>
+<td>准备发布</td>
+<td>审稿、核对账号、读完整预览，再逐次审批</td>
+</tr>
+<tr>
+<td>发布之后</td>
+<td>核对结果，提供实际数据，让 Agent 分析下一步</td>
+</tr>
+</tbody></table>
+</div><h2 id="遇到问题">遇到问题</h2>
+<div class="doc-table" tabindex="0" role="region" aria-label="数据表格"><table>
+<thead>
+<tr>
+<th>现象</th>
+<th>先做什么</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>看不到 MediaOps</td>
+<td>检查安装的 profile、DSH 版本，并完全退出重启</td>
+</tr>
+<tr>
+<td><code>@</code> 搜不到</td>
+<td>在工作台确认记录存在，清空搜索词重试</td>
+</tr>
+<tr>
+<td>配了模型仍无法生成</td>
+<td>确认默认提供商、模型权限和余额；离线验证不检查余额</td>
+</tr>
+<tr>
+<td>生成文件找不到</td>
+<td>让 Agent 报告当前工作区和 <code>outputs/</code> 中的实际文件</td>
+</tr>
+<tr>
+<td>发布结果不确定</td>
+<td>停止重发，先看发布队列并核对平台后台</td>
+</tr>
+</tbody></table>
+</div><p>更多细节见<a href="../docs/manual/">插件说明书</a>的故障排查章节。<a href="../docs/capabilities/">能力目录</a>可以按任务查找适合你的创作方式。</p>
+</article>
+      <nav class="doc-pager" aria-label="相邻文档"><span></span><a href="../docs/manual/">插件说明书 <span aria-hidden="true">→</span></a></nav>
+      <footer class="doc-footer"><a href="../">DSH-MediaOps</a><span>0.2.x</span></footer>
+    </main>
+    <aside class="doc-toc" aria-label="本页目录"><p>本页内容</p><nav><a href="#1-安装并打开工作台">1. 安装并打开工作台</a>
+<a href="#2-先告诉它你在做什么账号">2. 先告诉它你在做什么账号</a>
+<a href="#3-选中再保存">3. 选中，再保存</a>
+<a href="#4-引用资料完成草稿">4. 引用资料，完成草稿</a>
+<a href="#5-审稿后再准备发布">5. 审稿后，再准备发布</a>
+<a href="#每天可以这样用">每天可以这样用</a>
+<a href="#遇到问题">遇到问题</a></nav></aside>
+  </div>
+  <script src="../docs/search-index.js" defer></script>
+  <script src="../docs.js" defer></script>
+</body>
+</html>

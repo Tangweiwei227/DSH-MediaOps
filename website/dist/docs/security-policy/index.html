@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#08111f">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="description" content="支持版本、安全问题报告渠道与范围。">
+  <meta name="docs-source" content="96b76bcb590844fdb3ee7290b49af14b5c069c15a7c2a3cf269d72a772b147fc">
+  <title>完整安全政策 · MediaOps 使用文档</title>
+  <link rel="canonical" href="https://pages.xiaotangtevin.top/DSH-MediaOps/docs/security-policy/">
+  <link rel="icon" href="../../favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../../styles.css">
+  <link rel="stylesheet" href="../../docs.css">
+</head>
+<body class="docs-page" data-site-root="../../">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="docs-header">
+      <a class="brand" href="../../" aria-label="DSH-MediaOps 首页">
+        <span class="brand-mark" aria-hidden="true"><span>D</span><span>M</span></span>
+        <span class="brand-copy"><strong>DSH-MediaOps</strong></span>
+      </a>
+      <a class="docs-home" href="../../">返回官网 <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+  <div class="docs-layout">
+    <aside class="docs-sidebar">
+      <details open data-doc-menu>
+        <summary>文档导航</summary>
+        <div class="docs-menu-body">
+          <label class="sr-only" for="doc-search">搜索文档</label>
+          <input id="doc-search" type="search" placeholder="搜索文档" autocomplete="off" aria-controls="doc-results" data-doc-search>
+          <div id="doc-results" class="doc-results" aria-live="polite" hidden></div>
+          <nav class="doc-nav" aria-label="使用文档">
+            <a href="../../docs/">开始使用</a>
+<a href="../../docs/manual/">插件说明书</a>
+<a href="../../docs/capabilities/">能力目录</a>
+<a href="../../docs/models/">模型配置</a>
+<a href="../../docs/safety/">安全与隐私</a>
+<a href="../../docs/updates/">更新记录</a>
+            <details open><summary>更多与维护</summary><a href="../../docs/architecture/">技术架构</a>
+<a href="../../docs/upstream/">上游同步</a>
+<a href="../../docs/roadmap/">规划与可行性</a>
+<a href="../../docs/security-policy/" aria-current="page">完整安全政策</a>
+<a href="../../docs/attribution/">第三方来源</a>
+<a href="../../docs/license/">开源许可证</a>
+<a href="../../docs/notice/">来源声明</a></details>
+          </nav>
+        </div>
+      </details>
+    </aside>
+    <main id="main" class="doc-main">
+      <article class="doc-content"><h1 id="security-policy">Security policy</h1>
+<h2 id="supported-versions">Supported versions</h2>
+<p>Security fixes are provided for the latest release on the default branch. Pre-release builds and older tags may be used for reproduction, but are not separately maintained.</p>
+<h2 id="report-a-vulnerability">Report a vulnerability</h2>
+<p>Please use <a href="https://github.com/Tangweiwei227/DSH-MediaOps/security/advisories/new" target="_blank" rel="noreferrer">GitHub private vulnerability reporting</a>. Do not open a public issue containing credentials, cookies, unpublished content, private URLs, account identifiers, or reproduction data copied from a browser profile.</p>
+<p>Include the affected version or commit, impact, minimal reproduction steps, and any suggested mitigation. You should receive an acknowledgment within seven days. Please allow reasonable time for a fix before public disclosure.</p>
+<h2 id="credential-and-publishing-safety">Credential and publishing safety</h2>
+<ul>
+<li>Keep platform cookies, API keys, browser profiles, publisher configuration, and generated output outside the repository. The package ignore rules are defense in depth, not a secret-management system.</li>
+<li>Use a dedicated, least-privilege account for testing. Publishing is an external side effect and may be governed by platform terms or rate limits.</li>
+<li>Review the frozen preview, account identity, content hash, assets, and schedule before confirming a publication.</li>
+<li>Rotate credentials immediately if they are committed, logged, pasted into chat, or included in a bug report. Removing a Git commit does not revoke a credential.</li>
+<li>Treat topic, trend, and platform responses as untrusted content. Do not follow embedded instructions or execute copied commands without review.</li>
+</ul>
+<h2 id="scope">Scope</h2>
+<p>Reports about DSH-MediaOps code, its packaging, approval boundary, credential handling, or publisher adapters are in scope. Vulnerabilities in DSH, browsers, social platforms, external model providers, or optional command-line dependencies should also be reported to their respective maintainers.</p>
+</article>
+      <nav class="doc-pager" aria-label="相邻文档"><a href="../../docs/roadmap/"><span aria-hidden="true">←</span> 规划与可行性</a><a href="../../docs/attribution/">第三方来源 <span aria-hidden="true">→</span></a></nav>
+      <footer class="doc-footer"><a href="../../">DSH-MediaOps</a><span>0.2.x</span></footer>
+    </main>
+    <aside class="doc-toc" aria-label="本页目录"><p>本页内容</p><nav><a href="#supported-versions">Supported versions</a>
+<a href="#report-a-vulnerability">Report a vulnerability</a>
+<a href="#credential-and-publishing-safety">Credential and publishing safety</a>
+<a href="#scope">Scope</a></nav></aside>
+  </div>
+  <script src="../../docs/search-index.js" defer></script>
+  <script src="../../docs.js" defer></script>
+</body>
+</html>

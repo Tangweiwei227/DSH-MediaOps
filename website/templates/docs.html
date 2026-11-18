@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#08111f">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <meta name="description" content="{{description}}">
+  <meta name="docs-source" content="{{digest}}">
+  <title>{{title}} · MediaOps 使用文档</title>
+  <link rel="canonical" href="{{canonical}}">
+  <link rel="icon" href="{{prefix}}favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="{{prefix}}styles.css">
+  <link rel="stylesheet" href="{{prefix}}docs.css">
+</head>
+<body class="docs-page" data-site-root="{{prefix}}">
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <div class="docs-header">
+      <a class="brand" href="{{prefix}}" aria-label="DSH-MediaOps 首页">
+        <span class="brand-mark" aria-hidden="true"><span>D</span><span>M</span></span>
+        <span class="brand-copy"><strong>DSH-MediaOps</strong></span>
+      </a>
+      <a class="docs-home" href="{{prefix}}">返回官网 <span aria-hidden="true">↗</span></a>
+    </div>
+  </header>
+  <div class="docs-layout">
+    <aside class="docs-sidebar">
+      <details open data-doc-menu>
+        <summary>文档导航</summary>
+        <div class="docs-menu-body">
+          <label class="sr-only" for="doc-search">搜索文档</label>
+          <input id="doc-search" type="search" placeholder="搜索文档" autocomplete="off" aria-controls="doc-results" data-doc-search>
+          <div id="doc-results" class="doc-results" aria-live="polite" hidden></div>
+          <nav class="doc-nav" aria-label="使用文档">
+            {{nav}}
+            <details{{technicalOpen}}><summary>更多与维护</summary>{{more}}</details>
+          </nav>
+        </div>
+      </details>
+    </aside>
+    <main id="main" class="doc-main">
+      <article class="doc-content">{{content}}</article>
+      <nav class="doc-pager" aria-label="相邻文档">{{pager}}</nav>
+      <footer class="doc-footer"><a href="{{prefix}}">DSH-MediaOps</a><span>0.2.x</span></footer>
+    </main>
+    <aside class="doc-toc" aria-label="本页目录"><p>本页内容</p><nav>{{toc}}</nav></aside>
+  </div>
+  <script src="{{prefix}}docs/search-index.js" defer></script>
+  <script src="{{prefix}}docs.js" defer></script>
+</body>
+</html>

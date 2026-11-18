@@ -1,0 +1,12 @@
+{
+  "name": "dsh-mediaops-website",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node ../scripts/build-docs.mjs",
+    "check": "node ../scripts/check-website.mjs"
+  },
+  "devDependencies": {
+    "marked": "18.2.1"
+  }
+}

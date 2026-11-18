@@ -2,11 +2,13 @@
 
 > 适用版本：0.2.x
 > 项目主页：[github.com/Tangweiwei227/DSH-MediaOps](https://github.com/Tangweiwei227/DSH-MediaOps)
-> 官网：[dsh-mediaops.tevin2501689480.chatgpt.site](https://dsh-mediaops.tevin2501689480.chatgpt.site)
+> 官网：[DSH-MediaOps](https://pages.xiaotangtevin.top/DSH-MediaOps/) · [在线文档](https://pages.xiaotangtevin.top/DSH-MediaOps/docs/)
 
 DSH-MediaOps 是一个原生 DeepSeek Harness（DSH）插件。它把趋势发现、爆款收藏、选题管理、内容创作、多模态生产、跨平台发布和发布后复盘组织成一个可追踪的本地工作流，并把高频入口放回对话框：用 `@` 引用业务资料，用 `/` 启动固定流程，用自然语言决定下一步。
 
-本说明书面向插件使用者、账号运营者和维护人员。第一次使用建议依次阅读「五分钟开始」「核心概念」「多模态模型配置」和「发布安全协议」。
+本说明书面向新媒体运营、自媒体博主和维护人员。第一次使用可先读[开始使用](GETTING_STARTED.zh-CN.md)，完成一篇草稿；需要时再查本手册的模型、发布和故障排查章节。
+
+你可以直接说“给我 3 个适合账号的选题”“把这篇长文改成小红书图文”“盘点今天待发布的内容”。不必记住 Skill 名称或工具参数。本文中的 Host 指 DSH 在本机运行的执行端，Skill 指一项可复用的内容工作能力。
 
 ## 目录
 
@@ -58,7 +60,7 @@ DSH-MediaOps 面向单机个人工作流。它不是多人 SaaS、云端数据�
 
 ### 2.1 环境要求
 
-- 可运行的 DSH Desktop 或 `dsh` CLI；
+- 可运行的 DSH Desktop / Web 或 `dsh` CLI；插件声明的 DSH 兼容范围为 `>=0.2.2-rc.3 <0.3.0`，旧 0.1.x 需要先升级；
 - Node.js 22.19+ 或 24+；
 - 可从 `PATH` 找到的 pnpm，建议使用仓库声明的 pnpm 11.7.x；
 - 需要运行具体 Skill 时，再安装该 Skill 声明的 Python、FFmpeg、Playwright 或第三方工具。
@@ -79,14 +81,16 @@ dsh --version
 dsh plugin --profile desktop add github:Tangweiwei227/DSH-MediaOps
 ```
 
-安装完成后完全退出并重启 DSH Desktop。仅关闭窗口但保留后台进程，可能不会重新加载 Host 插件。
+安装命令中的 `desktop` 是使用界面对应的 profile。使用 DSH Web 时将它替换为 `web`；自定义 profile 使用实际名称。插件只在安装到的 profile 生效。
+
+安装完成后完全退出并重启 DSH Desktop；Web 用户重启对应 DSH 服务并刷新页面。仅关闭窗口但保留后台进程，可能不会重新加载 Host 插件。
 
 ### 2.3 验证
 
 重新进入任意对话后，依次检查：
 
-1. 对话视图出现 `MediaOps` 工作台入口；
-2. 输入框键入 `@`，可以看到 MediaOps 资料来源；
+1. 对话视图出现 `MediaOps` 工作台入口；也可在 DSH 右侧栏的页面入口中选择 `MediaOps`，边聊天边查看资料；
+2. 输入框键入 `@`，可以搜索选题库、爆款库、草稿库和发布记录四类资料；
 3. 输入框键入 `/`，可以看到 MediaOps 快捷工作流；
 4. DSH 设置页出现 MediaOps 区域；
 5. 发送「列出 MediaOps 当前能力和资料库概览」，Agent 能调用只读工具并返回结果。
@@ -153,7 +157,7 @@ dsh plugin --profile desktop add github:Tangweiwei227/DSH-MediaOps
 
 ### 4.1 使用 `@` 引用资料
 
-键入 `@` 后，选择 MediaOps 来源并搜索记录。被选中的条目保存的是“资料类型 + 稳定 ID + 展示名称”，不是简单粘贴一段标题。
+键入 `@` 后，可以统一搜索选题库、爆款库、草稿库和发布记录。选择实际候选条目后再发送消息；草稿引用包含受长度限制的正文，发布记录只带脱敏后的状态与结果。被选中的条目保存的是“资料类型 + 稳定 ID + 展示名称”，不是简单粘贴一段标题。
 
 消息真正提交时，客户端才向 Host 读取记录，并序列化成：
 
@@ -204,7 +208,9 @@ dsh plugin --profile desktop add github:Tangweiwei227/DSH-MediaOps
 
 ## 5. MediaOps 工作台
 
-MediaOps 工作台同时出现在对话视图和设置入口。它用于快速查看状态与执行轻量操作，不替代对话式流程。
+MediaOps 工作台有三个入口：对话视图中的 `MediaOps`、DSH 右侧栏页面入口中的 `MediaOps`，以及设置 → `MediaOps`。右侧栏适合边聊天边核对选题和发布队列；设置入口可在没有活动对话时查看状态。
+
+它用于快速查看状态与执行轻量操作。研究、创作、审稿和真实发布仍在对话中推进。
 
 主要页面包括：
 
@@ -213,7 +219,8 @@ MediaOps 工作台同时出现在对话视图和设置入口。它用于快速�
 - **爆款库**：查看来源并整理为选题；
 - **草稿**：查看标题、正文摘要、目标平台和状态；
 - **发布队列**：查看每个平台的任务状态、结果链接和错误；
-- **模型配置**：管理多模态提供商、能力和密钥状态。
+
+模型不在上述工作台标签内配置。打开 **DSH 设置 → 多模态模型**，管理图像、视频、音乐和云端语音提供商。
 
 工作台通过 DSH 本机 Web Server 访问 `/api/dsh-mediaops`。API 只接受 loopback、合法 localhost Host 与 same-origin 请求；它不是局域网或互联网 API。
 
@@ -296,6 +303,8 @@ MediaOps 工作台同时出现在对话视图和设置入口。它用于快速�
 - 只有自托管服务确实需要时，才显式允许私有网络地址。
 
 保存后，列表只显示密钥是否存在，不返回完整密钥或可识别片段。
+
+**配置一次，可在同一 DSH 数据目录下跨会话、跨工作区复用。** 切换文章或视频项目不必重复填 Key；它不随业务工作区迁移。更换机器、`DSH_HOME` 或实际 data root 时，需要安全迁移配置或重新填写；多个 profile 只有指向同一个 data root 时才共享。
 
 ### 7.2 密钥操作
 
@@ -509,7 +518,7 @@ data root 取首个有效值：
 | 路径 | 用途 | 敏感性 |
 |---|---|---|
 | `state.json` | 选题、爆款、草稿、发布记录 | 中 |
-| 模型提供商配置文件 | 模型端点、模型 ID、API Key | 高 |
+| `secrets/multimodal-models.json` | 模型端点、模型 ID、API Key、默认提供商 | 高 |
 | `staging/<publication-id>/` | 冻结正文和素材 | 高 |
 | `wechat-publisher.yaml` | 公众号账号配置 | 高 |
 | `credentials/` | Token、Cookie 等 | 高 |
@@ -596,13 +605,14 @@ DSH 的 id 定向 patch 会整体替换该行 `config`，而不是深度合并�
 2. 完全退出并重启 DSH Desktop；
 3. 检查 Node 与 pnpm 版本；
 4. 查看 DSH Host 日志中是否有 `dsh-mediaops` 加载错误；
-5. 本地开发安装时，确认修改 `src/` 后已运行 `pnpm build`。
+5. 确认 DSH 已升级到兼容的 0.2.x；旧版缺少右侧栏服务时会导致客户端入口无法挂载；
+6. 本地开发安装时，确认修改 `src/` 后已运行 `pnpm build`。
 
 ### 14.2 `@` 搜不到记录
 
 - 确认记录已经通过工具成功写入；
 - 清空搜索词后再试；
-- 检查本地 `/api/dsh-mediaops/topics` 或 `/viral` 是否返回错误；
+- 在 MediaOps 工作台搜索同一标题，确认资料库能正常加载；四类引用统一经过 `/api/dsh-mediaops/references` 查询；
 - 确认没有把手工输入的 `@标题` 当作已选择的结构化记录；
 - 检查 data root 是否指向了另一个 profile 或目录。
 
@@ -661,11 +671,21 @@ dry-run 失败意味着尚未真实发布。修复问题后重新准备即可。
 4. 阅读仓库 Release Notes 与迁移说明；
 5. 不要删除 `publishing` 记录来绕过执行锁。
 
+升级时使用与安装相同的命令和 profile：
+
+```sh
+dsh plugin --profile desktop add github:Tangweiwei227/DSH-MediaOps
+```
+
+完成后重启 DSH，再检查右侧工作台、`@` 四库引用和模型状态。升级不会替你重新授权发布；已迁移或过期的预览需要重新核对。
+
 ### 15.2 卸载
 
 ```sh
 dsh plugin --profile desktop remove dsh-mediaops
 ```
+
+`--profile` 必须与安装时一致。卸载后重启 DSH，插件的入口、工具和本地 API 才会从运行中的进程移除。
 
 卸载插件不会自动删除 data root、平台凭证、模型密钥或浏览器登录态。若确定不再使用，请先备份需要保留的数据，再使用系统文件管理器安全删除精确目录。
 

@@ -31,7 +31,7 @@
         <a href="#safety">发布安全</a>
         <a href="#install">安装</a>
       </nav>
-      <a class="header-action" href="https://github.com/Tangweiwei227/DSH-MediaOps" target="_blank" rel="noreferrer">GitHub <span aria-hidden="true">↗</span></a>
+      <a class="header-action" href="./docs/">使用文档 <span aria-hidden="true">↗</span></a>
     </div>
   </header>
 
@@ -45,7 +45,7 @@
           <p class="hero-lede">从热点发现、爆款拆解、选题入库，到多模态生产与受控发布。DSH-MediaOps 让 Agent 理解你的资料、调用真实工具，也尊重每一道授权边界。</p>
           <div class="hero-actions">
             <a class="button button-primary" href="#install">开始安装 <span aria-hidden="true">↓</span></a>
-            <a class="button button-secondary" href="https://github.com/Tangweiwei227/DSH-MediaOps/blob/main/docs/PLUGIN_MANUAL.zh-CN.md" target="_blank" rel="noreferrer">阅读完整说明书 <span aria-hidden="true">↗</span></a>
+            <a class="button button-secondary" href="./docs/manual/">阅读完整说明书 <span aria-hidden="true">↗</span></a>
           </div>
           <dl class="hero-stats" aria-label="产品数据">
             <div><dt>112</dt><dd>Bundled Skills</dd></div>
@@ -157,19 +157,15 @@
         <div class="section-heading">
           <p class="eyebrow">MULTIMODAL CONTROL PLANE</p>
           <h2 id="multimodal-title">模型可以替换，<br>密钥不会出现在对话里。</h2>
-          <p>在 MediaOps 设置中统一管理图像、视频、音乐与云端语音模型。配置由 Host 保管，只把能力状态暴露给 Agent；每个 Skill 仅获得运行所需的白名单环境变量。</p>
+          <p>在 DSH 设置中连接你常用的图像、视频、音乐和语音服务。配置一次，就能在同一安装下跨项目使用；创作前先核对方案，需要付费生成时再批准。</p>
           <ul class="check-list">
-            <li><span>✓</span> 四组 Provider 单路选择，不做隐式故障转移</li>
-            <li><span>✓</span> API Key 仅显示配置状态，支持保留、替换与清除</li>
-            <li><span>✓</span> 审批绑定配置与输入快照，变化即拒绝</li>
-            <li><span>✓</span> 公网 HTTP 始终拒绝；私网 HTTP 必须显式授权</li>
-            <li><span>✓</span> DNS 固定连接、无环境代理、媒体只走公网 HTTPS</li>
-            <li><span>✓</span> O_NOFOLLOW + dir_fd 原子落盘；FFmpeg 使用可 seek fd</li>
-            <li><span>✓</span> 子进程 SIGKILL 精确清理；Host 崩溃仅按可信 v2 保守恢复</li>
-            <li><span>✓</span> 预定义脚本、固定 argv、无 shell 执行</li>
-            <li><span>✓</span> 本地私有目录持久化，不进入 Git 与稿件</li>
+            <li><span>✓</span> 先配置需要的能力，不必一次填满四类</li>
+            <li><span>✓</span> 切换项目无需重复填写模型 Key</li>
+            <li><span>✓</span> 密钥保存在本机，不出现在对话和稿件里</li>
+            <li><span>✓</span> 真实生成前，核对模型、规格并批准请求</li>
+            <li><span>✓</span> 图片、音视频留在当前工作区，不自动发布</li>
           </ul>
-          <a class="text-link" href="https://github.com/Tangweiwei227/DSH-MediaOps/blob/main/docs/PLUGIN_MANUAL.zh-CN.md#7-多模态模型配置" target="_blank" rel="noreferrer">查看配置指南 <span aria-hidden="true">↗</span></a>
+          <a class="text-link" href="./docs/models/">查看配置指南 <span aria-hidden="true">↗</span></a>
         </div>
 
         <div class="model-console" aria-label="多模态模型配置界面示意">
@@ -211,7 +207,7 @@
             <p class="eyebrow">112 BUNDLED SKILLS</p>
             <h2 id="capability-title">从灵感到复盘，<br>不是一袋散装提示词。</h2>
           </div>
-          <p>来自 Easel 的完整媒体运营能力被组织为六层目录；Skill 正文在选中时读取，用户与项目内同名 Skill 始终优先。当前 Host 仍会注入可调用 Skill 的名称与描述。</p>
+          <p>找选题、写小红书、做口播、改成多平台版本，再根据数据复盘。直接描述要完成的任务，让 MediaOps 选择合适的能力。</p>
         </div>
         <div class="capability-matrix">
           <article><span>01</span><strong>通用</strong><b>6</b><p>资产、模板、资料与批处理</p></article>
@@ -277,9 +273,10 @@
     <div class="shell footer-grid">
       <div><strong>DSH-MediaOps</strong><p>AI 原生媒体运营插件 · Apache-2.0</p></div>
       <nav aria-label="页脚导航">
-        <a href="https://github.com/Tangweiwei227/DSH-MediaOps/blob/main/docs/PLUGIN_MANUAL.zh-CN.md" target="_blank" rel="noreferrer">说明书</a>
-        <a href="https://github.com/Tangweiwei227/DSH-MediaOps/blob/main/docs/CAPABILITIES.md" target="_blank" rel="noreferrer">能力目录</a>
-        <a href="https://github.com/Tangweiwei227/DSH-MediaOps/blob/main/SECURITY.md" target="_blank" rel="noreferrer">安全</a>
+        <a href="./docs/">使用文档</a>
+        <a href="./docs/manual/">说明书</a>
+        <a href="./docs/capabilities/">能力目录</a>
+        <a href="./docs/safety/">安全</a>
         <a href="https://github.com/ZJU-REAL/Easel" target="_blank" rel="noreferrer">Easel ↗</a>
       </nav>
       <p>Built for DeepSeek Harness · <span data-year></span></p>

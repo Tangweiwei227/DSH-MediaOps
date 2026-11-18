@@ -6,7 +6,7 @@ DSH-MediaOps 是一个同时包含 Host、浏览器 Client 和 112 个 bundled s
 
 ```text
 DSH Client
-  ├─ @：选题库 / 爆款库
+  ├─ @：选题库 / 爆款库 / 草稿 / 发布记录
   ├─ /：五个对话工作流
   └─ MediaOps 工作台：概览 / 选题 / 爆款 / 草稿 / 发布队列
               │ same-origin loopback API
@@ -107,7 +107,7 @@ Client 只负责交互和展示，不持有权威状态，也不直接访问状�
 
 ### `@` 引用
 
-`mediaops-library` 并行搜索选题库与爆款库。输入框保存稳定引用；消息提交时才由 Host 序列化为 `<mediaops_reference>`：
+`mediaops-library` 通过统一 references 查询搜索选题库、爆款库、草稿和发布记录，一次查询只读取 state 一次。输入框保存稳定引用；消息提交时才由 Host 序列化为 `<mediaops_reference>`：
 
 - 所有字段 XML 转义；
 - 每条引用受 `maxReferenceChars` 限制；
@@ -122,7 +122,7 @@ Client 只负责交互和展示，不持有权威状态，也不直接访问状�
 
 ### 工作台
 
-同一 `MediaOpsWorkbench` 挂载到 `conversation.view` 和 `settings.section`，展示概览、选题、爆款、草稿和发布队列；复杂研究、创作和真实发布仍走对话工具。
+同一 `MediaOpsWorkbench` 挂载到 `conversation.view`、`settings.section` 和 `sidebar.right.pane.tab`。右侧栏通过 `sidebarRightTabs` 注册 `kind: mediaops` 的页面类型，与渲染槽位共用稳定 ID `dsh-mediaops/rightbar`。工作台展示概览、选题、爆款、草稿和发布队列；复杂研究、创作和真实发布仍走对话工具。
 
 独立的 `ModelSettings` 挂载到第二个 `settings.section`。它通过 same-origin API 编辑图像、视频、音乐和云端语音四类模型 Provider；密码输入只用于本次 replace 请求，保存成功即从组件状态清除，Host 响应不会回显秘密。每次运行只使用该类别明确选中的默认 Provider，不做自动故障转移；当前没有受管 ASR/语音转写模型组。
 

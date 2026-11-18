@@ -30,6 +30,13 @@ DSH-MediaOps 0.2.0 把多模态生产、四类资料引用和工程发布门禁�
 
 完整边界与后续顺序见 [`ISSUE_TRIAGE_2026-09-12.md`](https://github.com/Tangweiwei227/DSH-MediaOps/blob/main/docs/ISSUE_TRIAGE_2026-09-12.md)。
 
+## 0.2.x 后续完善
+
+- 更新到 DSH 0.2.x 客户端契约，声明 `engines.dsh: >=0.2.2-rc.3 <0.3.0`；旧 DSH 0.1.x 需先升级。插件管理器另提供中英文展示信息、图标和详情配图。
+- 新增右侧栏 `MediaOps` 页面入口，与对话视图和设置中的工作台使用同一套资料。
+- 明确多模态配置按 data root 共享，同一安装下跨会话、跨工作区复用。
+- 官网迁入 GitHub Pages，新增站内文档：开始使用、插件说明书、能力目录、模型配置、安全与隐私以及维护资料，可直接阅读和搜索。
+
 ## 升级
 
 要求 Node.js 22.19+ 或 24+，以及可从 `PATH` 找到的 pnpm。
